@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
@@ -26,11 +26,16 @@ $BuilderEngine = null;
         {
             $this->global_blocks = $bool;
         }
+        function is_public_version()
+        {
+            return $this->config->item("public_version") == true;
+        }
         function get_blocks_global() { return $this->global_blocks; }
         function __construct()
         {
             parent::__construct(); 
             $this->load_settings();
+//            $this->remove_old_uploaded_files();
             global $active_show;
             $this->user = &$active_show->controller->user;
 
@@ -38,6 +43,13 @@ $BuilderEngine = null;
             if($BuilderEngine == null){
                 $BuilderEngine = $this;
             }
+        }
+        public function get_templating_engine()
+        {
+            if($this->config->item("templating_engine") == "smarty")
+                return "smarty";
+            else
+                return "legacy";
         }
         public function is_editor_active()
         {
@@ -87,12 +99,52 @@ $BuilderEngine = null;
             }
               
         }
+
+        //Alias for handle_head() for backwards compatibility
         function integrate_builderengine_styles()
+        {
+            $this->handle_head();
+        }
+        function integrate_builderengine_js($options = array())
+        {
+            $this->handle_foot($options);
+        }
+        function generate_script_url($path)
+        {
+            return "<script src=\"".home_url($path)."\"></script>";
+        }
+        function include_script($path)
+        {
+            echo $this->generate_script_url($path);
+        }
+        function handle_head()
+        {
+            echo "
+                <script type=\"text/javascript\">
+                    site_root = \"".home_url('')."\";
+                    theme_root = \"".get_theme_path()."\";
+                </script>
+            ";
+            EventManager::fire('be_head');
+            $this->_integrate_builderengine_styles();
+        }
+        function handle_foot($options = array())
+        {
+            $this->_integrate_builderengine_js($options);
+            EventManager::fire('be_foot');
+            echo "<script>";
+            EventManager::fire('be_enqueue_scripts');
+            echo "</script>";
+        }
+        function _integrate_builderengine_styles()
         {?>
+            <script src="<?php echo home_url("/builderengine/public/js/jquery.js")?>"></script>
             <link href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" rel="stylesheet" />
             <link href="http://vitalets.github.io/angular-xeditable/dist/css/xeditable.css" rel="stylesheet" />
-            <link rel='stylesheet' id='font-awesome-4-css'  href='/builderengine/public/css/font-awesome.css?ver=4.0.3' type='text/css' media='all' />
+            <link rel='stylesheet' id='font-awesome-4-css'  href="<?=base_url('/builderengine/public/css/font-awesome.css?ver=4.0.3')?>" type='text/css' media='all' />
 
+            <?php 
+            if(is_installed()):?>
             <?php
 
             $block = new Block('be_body_styler_'.$this->BuilderEngine->get_option('active_frontend_theme'));
@@ -106,6 +158,7 @@ $BuilderEngine = null;
             {
                 <?=$block->build_style(true)?>
             }
+            <?php endif;?>
             #virtual-block-holder{
                 position: absolute;
                 z-index:999;
@@ -117,21 +170,18 @@ $BuilderEngine = null;
                 min-height: 25px;
             }
 
-               .active a{
-                    background-color: #ddddff !important;
-                }
-
                 #admin-window {
                     z-index: 999999 !important;
                 }
                 .block-children {
+                    /*min-height: 20px;*/
                     position:relative;
                     /*display: inline-block;*/
-                    float: left;
+                    /*float: left;*/
                 }
                 .block {
                     position: relative;
-                    float: left;
+                    /*float: left;*/
                     /*display: inline-block;*/
                 }
                 .placeholder {
@@ -149,22 +199,25 @@ $BuilderEngine = null;
                     visibility: visible !important;
                 }
             </style>
+
         <?php
         }
         
-        function integrate_builderengine_js()
+        function _integrate_builderengine_js($options = array())
         {
             global $active_show;
             $user = $active_show->controller->user;
+            if(!isset($options['include_jquery']) || $options['include_jquery'] === true)
+                echo '<script src="'.home_url("/builderengine/public/js/jquery.js").'"></script>';
             ?>
 
-            <script src="/builderengine/public/js/jquery.js"></script>
             <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js" ></script>
             
-            <script src="/builderengine/public/js/editor/ckeditor.js"></script>
+            <script src="<?php echo home_url("/builderengine/public/js/editor/ckeditor.js")?>"></script>
 
             <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
             <script src="http://vitalets.github.io/angular-xeditable/dist/js/xeditable.js"></script>
+            <script src="<?php echo home_url("/builderengine/public/js/absolute-json.js")?>"></script>
 
             
             <script type="text/javascript">
@@ -178,50 +231,11 @@ $BuilderEngine = null;
                 var var_editor_mode = "";
 
             </script>
-            <script src="/builderengine/public/js/frontend-editor.js"></script>
+            <link rel="stylesheet" type="text/css" href="<?php echo home_url("/builderengine/public/editor/css/main.css?4")?>" />
+			
+
             <script type="text/javascript">
-                function reload_block(block_name, page_path, forced)
-                {
-                    //if(!has_focus)
-                    //    return;
-                    if(!forced && disable_auto_block_reload ){
-                        alert('nope ' + forced);
-                        return;
-                    }
-                    var getting_block = true;
 
-                    jQuery.ajax({
-                        type: "POST",
-                        data: { page_path: page_path },
-                         url:    '/layout_system/ajax/get_block/' +block_name + '?time='+new Date().getTime(),
-                         success: function(data) {
-                                    $('.block').each(function(){
-                                        if($(this).attr("name") == block_name){
-
-                                            old_data = $(this).html();
-
-                                            cloned = $(this).clone();
-                                            cloned = cloned.replaceWith(data);
-                                            cloned_data = cloned.html();
-                                            $(this).attr('class', cloned.attr('class'));
-                                            cloned.remove();
-                                            if(old_data != cloned_data || forced)
-                                                $(this).replaceWith(data);
-                                            if(var_editor_mode == "edit")
-                                                initializeCustomEditorClickEvent();
-                                            if(var_editor_mode == "style")
-                                                initializeStyleEditorClickEvent();
-                                                                            
-                                        }
-                                    }); 
-
-                                    var getting_block = false;
-                                    },
-                         async:   true
-                    });
-
-                    
-                }
                 $(document).ready(function(){
                     if(window.parent.page_url_change)
                     window.parent.page_url_change(page_path);
@@ -243,25 +257,32 @@ $BuilderEngine = null;
                             disable_auto_block_reload = false;
                         }
                     });
-                    <?  $copied_block = $this->user->get_session_data("copied_block");
+                    <?php  $copied_block = $user->get_session_data("copied_block");
                     if($copied_block):?>
                         $("#paste-block-button").parent().removeClass("disabled");
-                    <?endif;?>  
+                    <?php endif;?>  
 
 
                     $("#editor-holder").css('display','none');
-                    <? if($user->is_member_of("Administrators") || $user->is_member_of("Frontend Editor") || $user->is_member_of("Frontend Manager")): ?>
+                    <?php if($user->is_member_of("Administrators") || $user->is_member_of("Frontend Editor") || $user->is_member_of("Frontend Manager")): ?>
                     //$("body").css("padding-top", "45px");
 
                    
-                    <? endif; ?>
+                    <?php endif; ?>
                     //$("html").attr('ng-app','');
                     //$.getScript("http://ajax.googleapis.com/ajax/libs/angularjs/1.2.8/angular.min.js");
                 });
             </script>
-            
-            <script src="/builderengine/public/js/bootstrap-wysihtml5.js"></script>
-
+            <script src="<?php echo home_url("/builderengine/public/editor/js/remove_block.js")?>"></script>
+            <script src="<?php echo home_url("/builderengine/public/editor/js/undo_block.js")?>"></script>
+            <script src="<?php echo home_url("/builderengine/public/editor/js/resize.js")?>"></script>
+            <script src="<?php echo home_url("/builderengine/public/editor/js/admin.js?v4")?>"></script>
+            <script src="<?php echo home_url("/builderengine/public/editor/js/main.js?v4")?>"></script>
+            <script src="<?php echo home_url("/builderengine/public/editor/js/edit_off_sorts.js")?>"></script>
+            <script src="<?php echo home_url("/builderengine/public/js/frontend-editor.js")?>"></script>
+            <script src="<?php echo home_url("/builderengine/public/js/bootstrap-wysihtml5.js")?>"></script>
+	
+				
             <?php
         }
         function get_option($name)
@@ -287,7 +308,6 @@ $BuilderEngine = null;
                     $this->db->insert('options', $data);
                 }
             $this->options[$name] = $value;
-            
         }
         
         function get_frontend_theme()
@@ -298,7 +318,15 @@ $BuilderEngine = null;
         {
             return $this->get_option('active_backend_theme');
         }
+        function get_user_backend_theme()
+        {
+            return $this->get_option('active_user_backend_theme');
+        }
         
+        function get_social_backend_theme()
+        {
+            return $this->get_option('active_social_backend_theme');
+        }
         function activate_frontend_theme($theme)
         {
             $this->set_option("active_frontend_theme", $theme);
@@ -361,6 +389,7 @@ $BuilderEngine = null;
                     break;
             }
         }
+
         function get_site_visits($type, $days, $single_day = false)
         {
             global $active_show;
@@ -388,8 +417,6 @@ $BuilderEngine = null;
                         $this->db->select("COUNT(DISTINCT `ip`) as visits");
                     else
                         $this->db->select("COUNT(*) as visits");
-                    
-                    //$this->db->group_by("date");
                     if(true)
                         $this->db->where("date = '$date'");   
                     else
@@ -398,14 +425,8 @@ $BuilderEngine = null;
                     
                     $query = $this->db->get("visits");
                     $result = $query->result();
-
-      
-                    $visits[$i] = $result[0]->visits;
-                    
-                    
-                    
+                    $visits[$i] = $result[0]->visits;                     
                 }
-
                 if(count($visits) == 1)
                     return $visits[0];
                 else
@@ -413,52 +434,69 @@ $BuilderEngine = null;
                 break;
             }
         }
-        /*
-        function get_site_visits($type, $days, $single_day = false)
+
+         function getuserscount($today = NULL){
+            $this->db->select("count(DISTINCT `ip`) as count");
+             if($today) {
+                 $date = date("Y-m-d");
+                 $this->db->where("date = '$date'");
+             }
+            $query = $this->db->get("visits");
+            $result = $query->result();
+            return intval($result[0]->count);
+        }
+
+        function getVisitsByIp($ip){
+            $this->db->select("count(`ip`) as count");
+            $this->db->where("ip = '$ip'");
+            $query = $this->db->get("visits");
+            $result = $query->result();
+            return $result[0]->count;
+        }
+
+    function getcountries(){
+        $this->db->select("*");
+        $query = $this->db->select('count(ip) count');
+        $query = $this->db->group_by('ip');
+        $query = $this->db->order_by('count DESC');
+        $query = $this->db->limit(10);
+        $query = $this->db->get("visits");
+
+        $result = $query->result();
+        return $result;
+    }
+
+         function todayvisitorscount(){
+            $date = date("Y-m-d");
+            $this->db->select("count(*) as countVisits");
+            $this->db->where("date = '$date'");
+            $query = $this->db->get("visits");
+            $result = $query->result();
+            return $result[0]->countVisits;
+        }
+
+        function lastweekvisitorscount(){
+            $previous_week = strtotime("-1 week +1 day");
+            $start_week = strtotime("last sunday midnight",$previous_week);
+            $end_week = strtotime("next saturday",$start_week);
+            $start_week = date("Y-m-d",$start_week);
+            $end_week = date("Y-m-d",$end_week);
+            $datelastweek = $start_week;
+            $date = $datelastweek;
+            $this->db->select("count(*) as countVisits");
+            $this->db->where("date = '$date'");
+            $query = $this->db->get("visits");
+            $result = $query->result();
+            return $result[0]->countVisits;
+        }
+
+        function getBlogCount()
         {
-            $distinct = false;
-            switch($type){
-                case "unique":
-                    $distinct = true;
+            return $this->db->count_all_results('blog_posts');
+        }
 
-                case "all":
-                    $date = date("Y-m-d",mktime(0,0,0,date("m"),date("d") - $days));
-                    $visits = array();
-
-                    for($i = 0; $i < $days; $i++)
-                    {
-                        $visits[$i] = 0;
-                        if($single_day)
-                            break;
-                    }
-                    if($distinct)
-                        $this->db->select("COUNT(DISTINCT `ip`) as visits");
-                    else
-                        $this->db->select("COUNT(*) as visits");
-                    
-                    $this->db->group_by("date");
-                    if($single_day)
-                        $this->db->where("date = '$date'");   
-                    else
-                        $this->db->where("date >= '$date'");
-                    $this->db->order_by("date DESC");
-                    $query = $this->db->get("visits");
-                    $result = $query->result();
-
-                    $i = 0;
-                    foreach($result as $day)
-                    {
-                        $visits[$i] = $day->visits;
-                        $i++;
-                    }
-                    if(count($visits) == 1)
-                        return $visits[0];
-                    else
-                        return $visits;
-                    break;
-            }
-        }*/
-
-
+        function getBlogCommentsCount(){
+            return $this->db->count_all_results('blog_comments');
+        }
     }
 ?>

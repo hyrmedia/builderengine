@@ -1,13 +1,13 @@
 <?php 
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
@@ -59,7 +59,8 @@ if ( ! defined('BASEPATH')) exit('No direct script access allowed.');
 */
 
 $active_group = 'default';
-$active_record = TRUE;
+// $active_record = TRUE;
+$query_builder = TRUE;
 
 $db['default']['hostname'] = '##DB_HOST##';
 $db['default']['username'] = '##DB_USER##';
@@ -67,7 +68,7 @@ $db['default']['password'] = '##DB_PASS##';
 $db['default']['database'] = '##DB_NAME##';
 $db['default']['dbdriver'] = 'mysql';
 $db['default']['dbprefix'] = 'be_';
-$db['default']['pconnect'] = TRUE;
+$db['default']['pconnect'] = FALSE;
 $db['default']['db_debug'] = TRUE;
 $db['default']['cache_on'] = FALSE;
 $db['default']['cachedir'] = '';

@@ -1,13 +1,32 @@
+window.runMod = false;
 var editor_mode = "";
 var span_step = 0;
+var fluid_span = {
+  0: 0,
+  1: 0.08333333,
+  2: 0.1666667,
+  3: 0.25,
+  4: 0.33333333,
+  5: 0.416666667,
+  6: 0.50,
+  7: 0.58333333,
+  8: 0.666666667,
+  9: 0.75,
+  10: 0.833,
+  11: 0.91666667,
+  12: 1,
+  13: 1
+
+}
+var row = null;
 function notifyChange()
 {
-    window.parent.notifyChange();
+    window.top.notifyChange();
 }
 $(document).ready( function () {
 
   //alert(screen.width);
-	CKEDITOR.on( 'instanceCreated', function( event ) {
+  CKEDITOR.on( 'instanceCreated', function( event ) {
         var editor = event.editor,
             element = editor.element;
         // Customize editors for headers and tag list.
@@ -24,7 +43,7 @@ $(document).ready( function () {
             
         });
         editor.on( 'blur', function() {
-            $.post("/layout_system/ajax/save_block",
+            $.post(site_root + "/layout_system/ajax/save_block",
             {
                 page_path: page_path,
                 content:editor.getData(),
@@ -40,7 +59,7 @@ $(document).ready( function () {
 
     });
 
-	
+  
 
 
   
@@ -84,7 +103,7 @@ function showAdminWindow(content)
 
 function showAdminWindowIframe(url)
 {
-  window.parent.showAdminWindowIframe(url);
+  window.top.showAdminWindowIframe(url);
 
   
 }
@@ -100,20 +119,11 @@ function initializeCustomEditorClickEvent()
       if(attr == 'custom')
       {
         $(this).unbind("click.custom_block_admin");
-        $(this).bind("click.custom_block_admin",function (){
 
-          showAdminWindowIframe('/layout_system/ajax/block_admin/' + $(this).attr('block-name') + '?page_path=' + page_path);
-          /*$.post('/layout_system/ajax/block_admin/' + $(this).attr('block-name'),
-          {
-              page_path: page_path
-          },
-          function(data) {
-              
-              showAdminWindow(data);
-              
-          });*/
+        $(this).parent().find('.block-controls').find('.block-controls-inner').find('.settings').bind("click.custom_block_admin",function (){
+          showAdminWindowIframe(site_root+'/layout_system/ajax/block_admin/' + $(this).attr('block-name') + '?page_path=' + page_path);
+
         });
-        
 
         $("#edit-button").parent().addClass("active");
       }
@@ -123,23 +133,24 @@ function initializeCustomEditorClickEvent()
 }
 function initializeStyleEditorClickEvent()
 {
-  
-  
-
-  //$(".block").append("<div class='block-overlay' style='top:0px;position: absolute; background-color:#000; opacity: 0.5; z-index: 999; width: " + $(this).css('width') + "; height: " + $(this).css('height') + ";'></div>");
-  $(".block").prepend("<i class='fa fa-pencil-square style-icon' style='cursor:pointer;background-color:#fff;position:absolute;z-index:9999; width: 19px;height:19px; font-size: 22px;'></i>");
-
-  $(".style-icon").unbind("click.custom_block_admin");
-  $(".style-icon").bind("click.custom_block_admin",function (){
-    showAdminWindowIframe('/layout_system/ajax/block_styler/' + $(this).parent().attr('name') + '?page_path=' + page_path);
+  $(".block-content").each(function (){
+    $(this).unbind("click.custom_block_admin");
+    /*$(this).parent().find('.block-controls').find('.block-controls-inner').find('.style').bind("click.custom_block_admin",function (){
+      var blockName = $(this).parent().parent().parent().find('.block-content').attr('block-name');
+      showAdminWindowIframe('/layout_system/ajax/block_admin/' + blockName + '/styler' + '?page_path=' + page_path);
+    });*/
+    $("#edit-button").parent().addClass("active");
   });
-  $(".style-icon").hover(function (e){
-    $('.block-overlay').remove();
-    $(this).parent().append("<div class='block-overlay' style='top:0px; position: absolute; background-color:#0f0; opacity: 0.5; z-index: 999; width: " + $(this).parent().css('width') + "; height: " + $(this).parent().css('height') + ";'></div>");
-  }, function (){
-    $(".block-overlay").remove();
-  },true);
 }
+// $('body').on('click.custom_block_admin', '.block-controls .block-controls-inner .style', function(){
+//     var blockName = $(this).parent().parent().parent().find('.block-content').attr('block-name');
+//     showAdminWindowIframe(site_root+'/layout_system/ajax/block_admin/' + blockName + '/styler' + '?page_path=' + page_path);
+// });
+$('body').on('click.custom_block_admin', '.style', function(){
+  console.log($(".col-content-styler").parent().parent())
+    var blockName = $(this).parent().parent().parent().attr('name');
+    showAdminWindowIframe(site_root+'/layout_system/ajax/block_admin/' + blockName + '/styler' + '?page_path=' + page_path);
+});
 function blockStyleModeEnable()
 {
   initializeStyleEditorClickEvent();
@@ -149,41 +160,131 @@ function blockStyleModeDisable()
   $(".style-icon").unbind("click.custom_block_admin");
   $(".style-icon").remove();
 }
+function editv3ModeEnable()
+{
+  runMod = true;
+  // showEditorLoadingScreen();
+  $("body").addClass("editor-mode-active");
+  refresh_editor();
+
+  editModeEnable();
+  initializeStyleEditorClickEvent();
+}
+var loaded_google_fonts = false;
+function showEditorLoadingScreen()
+{
+    if(loaded_google_fonts)
+        return;
+    loaded_google_fonts = true;
+  setTimeout(function(){
+    $('body').append('<div id="ck-loading"><div style="width:100%;height:100%;z-index:1000000000;position: fixed;background-color: #000;opacity: 0.7;top: 0px;left: 0px;" id="ck-loading-overlay"></div><img style="top: 0;position: fixed;width:10%;height:auto;z-index:1000000001;" src="site_root/files/loading.gif"><h2 style="top: 150px;position: fixed;left: 70px;color: #fff;font-weight: bold;z-index:1000000001;">Block Editor Loading. Please wait...</h2></div>');
+  }, 100);
+}
+
+function editv3ModeDisable()
+{
+  runMod = false;
+  $("body").removeClass("editor-mode-active");
+  editModeDisable();
+}
+
 function editModeEnable()
 {
+  runMod = true;
   console.log('editModeEnable()');
   initializeCustomEditorClickEvent();
-  
-	$("[block-editor='ckeditor']").each(
-		function ()
-		{
-			var attr = $(this).attr('block-editor');
-			if (typeof attr === 'undefined' || attr === false) 
-				return;
+  enableResize();
+  $("[block-editor='ckeditor']").each(
+    function ()
+    {
+      var attr = $(this).attr('block-editor');
+      if (typeof attr === 'undefined' || attr === false)
+        return;
 
-			if(attr == 'ckeditor')
-			{
-				$(this).attr("contenteditable", "true");
-				
+      $(this).click(function(){
+        if(!this.hasAttribute('aria-label') && runMod)
+            createCkEditor(this);
+      })
+      if(attr == 'ckeditor')
+      {
+        $(this).attr("contenteditable", "true");
 
-				$("#edit-button").parent().addClass("active");
-			}
+        $("#edit-button").parent().addClass("active");
+      }
 
-		}
-	);
-	CKEDITOR.inlineAll();
+    }
+  );
+  // CKEDITOR.inlineAll();
+}
+function createCkEditor(e){
+  showEditorLoadingScreen();
+  CKEDITOR.inline(e);
+}
+
+function FreeModeEnableOff()
+{
+  $('[block-move="move"]').hide()
+  runMod = true;
+  $("[block-editor='ckeditor']").each(
+    function ()
+    {
+      var attr = $(this).attr('block-editor');
+      if (typeof attr === 'undefined' || attr === false)
+        return;
+
+      $(this).click(function(){
+        if(!this.hasAttribute('aria-label') && runMod)
+          createCkEditor(this);
+      })
+      if(attr == 'ckeditor')
+      {
+        $(this).attr("contenteditable", "true");
+
+        $("#edit-button").parent().addClass("active");
+      }
+    }
+  );
+}
+
+function FreeModeDisableOff()
+{
+  runMod = false;
+  $(".block-content").attr("contenteditable", "false");
+  for (editor in CKEDITOR.instances) {
+    CKEDITOR.instances[editor].destroy();
+  }
+    $("[block-editor='custom']").unbind("click.custom_block_admin");
+    $("#edit-button").parent().removeClass("active");
+}
+
+function FreeModeEnableOn()
+{
+  initialize_edit_off_sorts();
+  // enableResize();
+  freeModeEnableResize();
+}
+
+function FreeModeDisableOn()
+{
+  $(".freeMode").each(function () {
+    $(this).draggable( "destroy" );
+    $(this).resizable("destroy");
+  })
 }
 
 function editModeDisable()
 {
-	$(".block-content").attr("contenteditable", "false");
+  runMod = false;
+  $(".block-content").attr("contenteditable", "false");
     var editor;
     for (editor in CKEDITOR.instances) {
         CKEDITOR.instances[editor].destroy();
     }
     $("[block-editor='custom']").unbind("click.custom_block_admin");
     $("#edit-button").parent().removeClass("active");
-
+    $(".be-column-block").each(function () {
+      $(this).resizable("destroy");
+    })
 }
 
 
@@ -210,6 +311,7 @@ function moveModeEnable()
         /*connectWith: '.block-children-connectable',*/
         forceHelperSize: true,
         start: function(e, ui){
+            ui.placeholder.css('margin-left', '0px');
             ui.placeholder.height(ui.item.height() - 4);
             ui.placeholder.width(ui.item.width() - 4);
         },
@@ -227,7 +329,7 @@ function moveModeEnable()
               i++;
             }
           });
-          $.post("/layout_system/ajax/save_block_children",
+          $.post(site_root + "/layout_system/ajax/save_block_children",
           {
               children:JSON.stringify(children),
               name:parent_name,
@@ -248,15 +350,31 @@ function moveModeDisable()
   $(".block-children").sortable("destroy");
   $('.sortable-handle').remove();
 }
+
 function detectSpanWidth(tester)
-{
+{/*
   span = parseInt(get_element_span(tester));
   span -= 1;
   width = parseInt($(tester).css('width'));
   width -= 80;
 
-  return Math.round(width/span);
-  //alert(Math.round(width/span));
+  return Math.round(width/span);*/
+  if(row == null)
+  row = getParentRowInfo(tester);
+
+  if(row['type'] == "row")
+  {
+    span = parseInt(get_element_span(tester));
+    span -= 1;
+    width = parseInt($(tester).css('width'));
+    width -= 80;
+    console.log("Returning something");
+    return Math.round(width/span);
+  }else
+  {
+    return row['step'];
+
+  }
 }
 /* Block Resize Functions Begin*/
 function resizeModeEnable()
@@ -265,6 +383,11 @@ function resizeModeEnable()
       $(this).resizable({
 
         resize: function () {
+          if(row == null){
+            console.log("Getting new row");
+            row = getParentRowInfo($(this));
+          }
+          if(false){
             if(span_step == 0)
               span_step = detectSpanWidth($(this));
 
@@ -300,9 +423,50 @@ function resizeModeEnable()
               }
             }
 
+          }else{
+             span_step = 0;
+              if(span_step == 0)
+                span_step = detectSpanWidth($(this));
 
+              console.log(span_step);
+              current_width = parseInt($(this).css("width")) + 160;
+              $(this).css("width", "");
+
+              
+              span = get_element_span(this);
+              console.log("Current width " + current_width + " next step is " + row['width'] * fluid_span[(span + 1)] + " row width " + row['width'] + " span " + fluid_span[(span + 1)]);
+              if(current_width > row['width'] * fluid_span[(span + 1)]  )
+              {
+
+                current_span = get_element_span(this);
+                console.log("Current span " + current_span);
+                if(current_span != 12 && check_total_span_sum($(this).parent()) != 12)
+                {
+                  $(this).removeClass("span" + current_span);
+                  current_span++;
+                  $(this).addClass("span" + current_span);
+                  $(this).css("width", "");
+                  
+                }
+              }
+
+              if(current_width < row['width'] * fluid_span[(span - 1)])
+              {
+
+                current_span = get_element_span(this);
+                if(current_span != 1)
+                {
+                  $(this).removeClass("span" + current_span);
+                  current_span--;
+                  $(this).addClass("span" + current_span);
+                  $(this).css("width", "");
+                
+                }
+              }
+          }
           },
         start: function (event, ui) {
+          row = null;
                 $(this).attr('resizing', 'true');
                 block = ui.originalElement;
                 min_height = block.css('min-height');
@@ -315,6 +479,7 @@ function resizeModeEnable()
                 
         }, 
         stop: function (event, ui) {
+          span_step = 0;
                 $(this).attr('resizing', 'false');
                 block = ui.originalElement;
                 height = block.css('height');
@@ -323,7 +488,7 @@ function resizeModeEnable()
                 span_count = get_element_span(block);
                 span = "span" + span_count;
                 block_name = block.attr('name');
-                $.post("/layout_system/ajax/save_block",
+                $.post(site_root + "/layout_system/ajax/save_block",
                   {
                       page_path: page_path,
                       size:span,
@@ -360,9 +525,7 @@ function resizeModeEnable()
           $(this).find(".block-overlay").remove();
       }
       )
-      
     });
-  
 
     
 
@@ -441,7 +604,7 @@ function addBlockModeEnable(block_type)
     addBlockModeDisable();
     event.stopPropagation();
     var parent = $(this);
-    $.post("/layout_system/ajax/add_block/" + $(this).attr("block-name") + "/" + block_type, 
+    $.post(site_root+"/layout_system/ajax/add_block/" + $(this).attr("block-name") + "/" + block_type,
       {
         page_path: page_path
       },
@@ -507,7 +670,7 @@ function deleteBlockModeEnable()
 
         var block_obj_to_delete = $(this);
         var parent_name = $(this).parent().attr('block-name');
-        $.ajax("/layout_system/ajax/delete_block/" + $(this).attr("name") + "/" + parent_name + "?page_path=" + page_path).error(function() {
+        $.ajax(site_root+"/layout_system/ajax/delete_block/" + $(this).attr("name") + "/" + parent_name + "?page_path=" + page_path).error(function() {
           var success = false; 
           alert('There was an error performing this operation.\nPlease contact customer support.') 
         }).success(function()

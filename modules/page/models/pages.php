@@ -1,17 +1,5 @@
 <?php
-/***********************************************************
-* BuilderEngine v2.0.12
-* ---------------------------------
-* BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
-*
-* http://www.builderengine.com
-* Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
-*
-***********************************************************/
-
-    class pages extends CI_Model
+    class Pages extends CI_Model
     {
         function search($search = "")
         {
@@ -44,31 +32,86 @@
         }
         function add($post, $author)
         {
+            if($post['add_to_nav'] == 'yes' && isset($post['link']) && $post['link'] != '')
+            {
+                $link_info = array(
+                    "name" => $post['title'],
+                    "target" => "/page-".$post['slug'].".html",
+                    "parent" => $post['link'],
+                    "groups"  => $post['groups'],
+                    "order" => 1
+                    );
+                $this->create_page_link($link_info);
+            }
             global $user;
             $data = array( 
                 "title" => $post['title'],
                 "template" => $post['template'],
                 "date_created" => time(),
                 "author" => $author, 
-                "slug"  => $post['slug']
+                "slug"  => $post['slug'],
+                "groups"  => $post['groups'],
+                "meta_desc"  => $post['meta_desc'],
+				"meta_keywords"  => $post['meta_keywords'],
+                "seo_index"  => (!isset($post['seo_index']))? 'index,':'noindex,',
+				"seo_follow"  => (!isset($post['seo_follow']))? 'follow,':'nofollow,',
+				"seo_snippet"  => (!isset($post['seo_snippet']))? '':'nosnippet,',
+				"seo_archive"  => (!isset($post['seo_archive']))? '':'noarchive,',
+				"seo_img_index"  => (!isset($post['seo_img_index']))? '':'noimageindex,',
+				"seo_odp"  => (!isset($post['seo_odp']))? '':'noodp',
             );
 
             $this->db->insert("pages", $data);
+        }
+        function create_page_link($data)
+        {
+            $this->load->model('links');
+            $this->links->add($data);
+        }
+
+        function edit_page_link($name,$contents)
+        {
+            $this->load->model('links');
+            $data = array(
+                "name" => $contents['title'],
+                "target"  => $contents['slug'],
+                "meta_desc"  => $contents['meta_desc'],
+                "meta_keywords"  => $contents['meta_keywords'],
+                "groups"  => $contents['groups'],
+            );
+            $this->links->edit_page($name,$data);
         }
 
         function edit($id, $contents)
         {
             $data = array( 
                 "title" => $contents['title'],
-                "slug"  => $contents['slug']
+                "slug"  => $contents['slug'],
+                "groups"  => $contents['groups'],
+                "meta_desc"  => $contents['meta_desc'],
+                "meta_keywords"  => $contents['meta_keywords'],
+                "seo_index"  => (!isset($contents['seo_index']))? 'index,':'noindex,',
+				"seo_follow"  => (!isset($contents['seo_follow']))? 'follow,':'nofollow,',
+				"seo_snippet"  => (!isset($contents['seo_snippet']))? '':'nosnippet,',
+				"seo_archive"  => (!isset($contents['seo_archive']))? '':'noarchive,',
+				"seo_img_index"  => (!isset($contents['seo_img_index']))? '':'noimageindex,',
+				"seo_odp"  => (!isset($contents['seo_odp']))? '':'noodp',
             );
             $this->db->where('id', $id);
             $this->db->update('pages', $data);        
         }
         function delete($id)
         {
+            $delete_item = $this->get($id);
+            $name = $delete_item->title;
+            $this->delete_link($name);
             $this->db->where('id', $id);
             $this->db->delete('pages');
+        }
+        function delete_link($name){
+            $this->load->model('links');
+            $this->db->where('name', $name);
+            $this->db->delete('links');
         }
     }
 ?>

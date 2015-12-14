@@ -1,19 +1,19 @@
 <?php 
 
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.0.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* File version: 3.0.0
 *
 ***********************************************************/
 
  if ( ! defined('BASEPATH')) exit('No direct script access allowed');
-
+$config['templating_engine'] = "smarty";
 
 $config['site_installed'] = false;
 
@@ -128,6 +128,9 @@ $config['enable_hooks'] = FALSE;
 */
 $config['subclass_prefix'] = 'MY_';
 
+$config['composer_autoload'] = FALSE;
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -233,7 +236,13 @@ $config['log_date_format'] = 'Y-m-d H:i:s';
 | system/cache/ folder.  Use a full server path with trailing slash.
 |
 */
+$config['error_views_path'] = '';
+
 $config['cache_path'] = '';
+
+$config['cache_query_string'] = FALSE;
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -264,15 +273,19 @@ $config['encryption_key'] = 'asdasdsadasd';
 | 'sess_time_to_update'        = how many seconds between CI refreshing Session Information
 |
 */
+// $config['sess_driver']  = 'database';
+// $config['sess_save_path']  = 'be_users';
+
 $config['sess_cookie_name']        = 'ci_session';
 $config['sess_expiration']        = 7200;
-$config['sess_expire_on_close']    = FALSE;
-$config['sess_encrypt_cookie']    = FALSE;
 $config['sess_use_database']    = FALSE;
 $config['sess_table_name']        = 'ci_sessions';
 $config['sess_match_ip']        = FALSE;
-$config['sess_match_useragent']    = TRUE;
 $config['sess_time_to_update']    = 300;
+/*Comented on CI 3 version */
+// $config['sess_expire_on_close']    = FALSE;
+// $config['sess_encrypt_cookie']    = FALSE;
+// $config['sess_match_useragent']    = TRUE;
 
 /*
 |--------------------------------------------------------------------------

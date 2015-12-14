@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
@@ -19,11 +19,46 @@ require_once(APPPATH."third_party/MX/Controller.php");
 global $active_controller;
 global $cache;
     class BE_Controller extends MX_Controller{
+    	/**
+    	 * @var CI_Loader
+    	 */
+    	var $load;
+
         public $show;
         public $user;
+        public static $s_user = null;
         public $links_array;
         protected $page_path;
         protected $versions = null;
+        private static $s_events = null;
+
+        private $_server_URL = 'http://update-server.builderengine.com';
+
+        
+        public function update_download($ver = FALSE){
+            $default = FALSE;
+
+            if($ver){
+                $payload = http_build_query(array(
+                    'client'    =>  'installedCMS',
+                    'file'   =>  $this->BuilderEngine->get_option('version').'-to-'.$ver,
+                    'time'      =>  time()));
+                return file_get_contents($this->_server_URL.'/download.php?'.$payload);
+            }else{
+                return $default;
+            }
+        }
+
+        public function update_check($ver = FALSE){
+
+            $payload = http_build_query(array(
+                'client'    =>  'installedCMS',
+                'version'   =>  ($ver) ? $ver : $this->BuilderEngine->get_option('version'),
+                'time'      =>  time()));
+            return file_get_contents($this->_server_URL.'/check.php?'.$payload);
+
+        }
+
         function BE_Controller()
         {
             $this->page_path = false;
@@ -32,16 +67,18 @@ global $cache;
             $active_controller = $this;
             parent::__construct();
 
-            if(!$this->is_installed() && $this->uri->segment(2) != "install"){
+            $this->load->helper("url");
+            if(!$this->is_installed() && $this->uri->segment(2) != "install" && $this->uri->segment(1) != "api"){
                 redirect('/admin/install/index', 'location');
             }
 
-            if($this->is_installed())
+            if($this->is_installed()){
                 $this->load->database();
+                @$this->load->library('datamapper');
+            }
 
-            $this->load->library('datamapper');
+            
 
-            $this->load->helper("url");
 
             if(!$active_show)
                 $this->show = new Show($this);
@@ -53,6 +90,7 @@ global $cache;
             
 
             if($this->is_installed()){
+                $this->load->model('user');
                 global $cache;
                 $this->load->model("cache");
                 $cache = $this->cache;
@@ -60,17 +98,45 @@ global $cache;
 
                 $this->BuilderEngine->load_settings();
 
-                $session = $this->session;
+                if(!EventManager::is_initialized() && !EventManager::is_initializing())
+                {
+                    EventManager::set_initializing(true);
+                    $this->load->model('module');
+                    $modules = $this->module;
+                    // $modules = new Module();
+
+                    foreach($modules->get() as $module)
+                    {
+                        if($module->folder == "module_system")
+                            continue;
+                        Modules::run($module->folder."/register_events");
+                    }
+
+                    EventManager::set_initialized(true);
+                }
+                
+                if(self::$s_user == null)
+                {
+                    self::$s_user = new User();
+                    $session = $this->session;
+                    
+                    self::$s_user->_init($session);
+                }
+                
                 $user_model = $this->users;
-                $this->user = new User($session, $user_model);
 
                 global $user;
-                $user = $this->user;
+                $user = self::$s_user;
+                $this->user = &self::$s_user;
                 $CI =& get_instance();
-                $CI->load->model('links');
+                $this->load->model('links');
 
-                $this->links_array = $CI->links->get();
+                $this->links_array = $this->links->get();
 
+                foreach($this->links_array as $link)
+                {
+                    $link->target = str_replace("%site_root%", home_url('/'), $link->target);
+                }
                 
             }
             $this->BuilderEngine->set_option("active_backend_theme","dashboard", false);
@@ -86,6 +152,14 @@ global $cache;
 
             $this->layout_system->load->model('versions');
             $this->versions = &$this->layout_system->versions;
+
+            if($this->is_installed())
+            {
+                $this->load->model('Module');
+                $this->load->model('Group');
+                $this->load->model('Group_module_permission');
+            }
+            
         }
         public function get_builderengine()
         {
@@ -134,7 +208,7 @@ global $cache;
             
             return $this->links_array;
         }
-        public function show($view)
+        public function show()
         {
             //commented function
             // if(file_exists("themes/".$this->BuilderEngine->get_active_theme()."/".$view.".php"))
@@ -145,7 +219,7 @@ global $cache;
         
     }
 
-    class Module extends BE_Controller{
+    class Module_Controller extends BE_Controller{
         private $initialized = false;
         private function _initialize()
         {
@@ -166,6 +240,7 @@ global $cache;
         {
             //echo "Method: $method <br>\n";
             //echo "Params: ";
+            PC::_remap(func_get_args());
             $params = array_slice(func_get_args(), 1);
             if(!is_array($params))
             {
@@ -211,6 +286,3 @@ global $cache;
            return "__404__";
         }
     }
-
-
-?>

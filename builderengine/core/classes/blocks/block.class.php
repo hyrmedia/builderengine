@@ -1,16 +1,17 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
+// To be updated
  class Block{
     private $html;
     private $options = array();
@@ -18,7 +19,7 @@
 
     public $name = null;
     protected $data = array();
-    
+
     protected $output = true;
 
     protected $BuilderEngine = null;
@@ -28,7 +29,7 @@
     private $versions;
 
     protected $global = false;
-    protected $type = 'generic';
+    public $type = 'generic';
     private $loaded = false;
     private $force_data_modification = false;
     private $id = 0;
@@ -41,14 +42,14 @@
         $ci =& get_instance();
         $ci->load->model('versions');
         $this->versions =& $ci->versions;
-        
+
         $this->db =& $ci->db;
 
         $ci->load->module('layout_system');
         $this->layout_system = &$ci->layout_system;
 
         $this->defaults();
-        
+
     }
     public function is_new()
     {
@@ -59,7 +60,7 @@
         echo "
         <script>
             if(!('{$this->name}' in blocks_for_reload))
-            {   
+            {
                 blocks_for_reload['{$this->name}'] = true;
                 setInterval(function(){reload_block('{$this->name}', page_path, false)},{$interval});
             }
@@ -73,7 +74,7 @@
     {
         return $this->type;
     }
-    public function generate_admin()
+    public function save_content($content)
     {
         if($this->type != 'generic')
         {
@@ -82,22 +83,51 @@
             $classname = $this->type."_block_handler";
             $handler = new $classname();
             $handler->set_block($this);
-            return $handler->generate_admin();
+            return $handler->save_content($content);
+        }else
+            $this->set_data('content', $content, true);
+    }
+    public function generate_admin($menu = '')
+    {
+        if(true /*$this->type != 'generic'*/)
+        {
+            include_once("blocks/".$this->type."/".$this->type.".php");
+
+            $classname = $this->type."_block_handler";
+            $handler = new $classname();
+            $handler->set_block($this);
+            if($menu == 'styler')
+                return $handler->generate_style();
+            else
+                return $handler->generate_admin();
         }else
         echo "Type is ".$this->type;
     }
-    private function generate_content()
-    {
-        if($this->type != 'generic')
-        {
-            include_once("blocks/".$this->type."/".$this->type.".php");
+     private function generate_content()
+     {
+         if(true /*$this->type != 'generic'*/)
+         {
+             include_once("blocks/".$this->type."/".$this->type.".php");
 
-            $classname = $this->type."_block_handler";
-            $handler = new $classname();
-            $handler->set_block($this);
-            return $handler->generate_content();
-        }
-    }
+             $classname = $this->type."_block_handler";
+             $handler = new $classname();
+             $handler->set_block($this);
+             return $handler->generate_content();
+         }
+     }
+     private function output_admin_options()
+     {
+         if($this->type != 'generic')
+         {
+             include_once("blocks/".$this->type."/".$this->type.".php");
+
+             $classname = $this->type."_block_handler";
+             $handler = new $classname();
+             $handler->set_block($this);
+             $handler->load_options();
+             return $handler->output_admin_options();
+         }
+     }
     public function force_data_modification()
     {
         $this->force_data_modification = true;
@@ -115,7 +145,7 @@
     }
     public function css($attribute)
     {
-        $css_attributes = $this->data('css_attributes');
+        $css_attributes = $this->data('style');
         if(isset($css_attributes[$attribute]))
             return $css_attributes[$attribute];
         else
@@ -124,16 +154,15 @@
 
     public function set_css($attribute, $value)
     {
-        $css_attributes = $this->data('css_attributes');
+        $css_attributes = $this->data('style');
         $css_attributes[$attribute] = $value;
-        $this->set_data('css_attributes', $css_attributes);
+        $this->set_data('style', $css_attributes);
     }
 
     public function load()
     {
         if($this->loaded)
             return true;
-        PC::Loading("Loading block ".$this->name);
         $this->loaded = $this->layout_system->blocks->load($this);
         if(!$this->loaded){
 
@@ -190,33 +219,319 @@
 
     public function show()
     {
-
+$freeModeClass = '';
         if(!$this->load())
             $this->is_new_block = true;
 
         $content = $this->data('content');
 
-        if($this->type != 'generic' && $this->type != ""){
+        if(true /*$this->type != 'generic' && $this->type != ""*/){
+
             $content = $this->generate_content();
         }
+    
+        $editor = $this->data('block-editor');
 
-        if($this->type == 'generic')
+        if($this->type == 'generic' || ($editor != null && $editor = 'inline-text-editor'))
             $block_editor = 'ckeditor';
         else
             $block_editor = 'custom';
 
 
-        $this->html = preg_replace('/{content}/', "<div class='block-content' block-editor='$block_editor' block-name='{$this->name}'>".$content."</div>", $this->html, 1);
+            //$block_editor = 'ckeditor';
+
         if ($this->is_new_block){
             PC::WARNING("This is new block - saving ".$this->name);
             $this->save();
         }
-        $this->include_nested_elements();
 
         $classes = "";
 
         if($this->is_resizable())
-            $classes .= " resizable ".$this->size();
+            $classes .= " resizable ".$this->size()." ";
+
+        $block_content = "<div class='block-content' block-type='{$this->type}' block-editor='{$block_editor}' block-name='{$this->name}'>".$content."</div>";
+        $this->children_holder_classes = "";
+
+        switch($this->type)
+        {
+            case "header":
+                $this->html .= '<div class="block-controls">
+                                    <div class="block-controls-inner panel-heading-btn">
+                                        <a rel="tooltip" data-placement="top" title="Style Settings" class="style btn btn-xs  btn-white" data-click="" data-original-title="" title=""><i class="fa fa-paint-brush"></i></a>
+                                        <div class="dropdown block-add-child-block">
+                                            <a rel="tooltip" data-placement="top" title="Add Section" class="btn btn-xs  btn-white dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown"> <span class="fa fa-th-large"></span>
+                                            </a>
+
+                                            <ul class="dropdown-menu " role="menu"
+                                                aria-labelledby="dropdownMenu1">
+
+                                            </ul>
+                                        </div>
+                                        ';
+                $this->html .= $this->output_admin_options();
+                $this->html .= "    </div>
+                                </div>";
+                $classes .= " be-header-block be-container-block ";
+                $this->children_holder_classes = " header-children ";
+
+                break;
+            case "page":
+                $this->html .= '<div class="block-controls">
+                                   <div class="block-controls-inner panel-heading-btn">
+                                        <a rel="tooltip" data-placement="top" title="Style Settings" class="style btn btn-xs  btn-white" data-click="" data-original-title="" title=""><i class="fa fa-paint-brush"></i></a>
+
+                                        <div class="dropdown block-add-child-block">
+                                            <a rel="tooltip" data-placement="top" title="Add Section" class="btn btn-xs  btn-white dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown"> <span class="fa fa-th-large"></span>
+                                            </a>
+
+                                            <ul class="dropdown-menu " role="menu"
+                                                aria-labelledby="dropdownMenu1">
+
+                                            </ul>
+                                        </div>
+                                        ';
+                $this->html .= $this->output_admin_options();
+                $this->html .= "   </div>
+                                </div>";
+                $classes .= " be-page-content-block be-container-block ";
+                $this->children_holder_classes = " page-children ";
+                break;
+
+            case "footer":
+                $this->html .= '<div class="block-controls">
+                                    <div class="block-controls-inner panel-heading-btn">
+                                        <a rel="tooltip" data-placement="top" title="Style Settings" class="style btn btn-xs  btn-white" data-click="" data-original-title="" title=""><i class="fa fa-paint-brush"></i></a>
+
+                                        <div class="dropdown block-add-child-block">
+
+                                            <a rel="tooltip" data-placement="top" title="Add Section" class="btn btn-xs  btn-white dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown"> <span class="fa fa-th-large"></span>
+                                            </a>
+
+                                            <ul class="dropdown-menu " role="menu"
+                                                aria-labelledby="dropdownMenu1">
+
+                                            </ul>
+                                        </div>
+                                        ';
+                $this->html .= $this->output_admin_options();
+                $this->html .= "   </div>
+                                </div>";
+                $classes .= " be-footer-content-block be-container-block ";
+                break;
+            case "row":
+                $this->html .= '<div class="block-controls">
+                                    <div class="block-controls-inner panel-heading-btn">
+
+                                       <a rel="tooltip" data-placement="top" title="Remove" href="#close" class="remove btn btn-xs btn-danger"><i class="fa fa-times"></i></a>
+
+                                       <a rel="tooltip" data-placement="top" title="Minimize / Maximize" class="collapse-element btn btn-xs btn-warning"><i class="fa fa-minus"></i></a>
+
+                                        <span rel="tooltip" data-placement="top" title="Move" class="drag btn btn-xs btn-white"><i class="fa fa-arrows"></i></span>
+
+                                        <a rel="tooltip" data-placement="top" title="Style Settings" class="style btn btn-xs  btn-white" data-click="" data-original-title="" title=""><i class="fa fa-paint-brush"></i></a>
+
+                                        <div class="dropdown block-add-child-block">
+                                            <a rel="tooltip" data-placement="top" title="Add Section" class="btn btn-xs btn-white dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown"> <span class="fa fa-th-large"></span>
+                                            </a>
+
+                                            <ul class="dropdown-menu " role="menu"
+                                                aria-labelledby="dropdownMenu1">
+
+                                            </ul>
+                                        </div>
+                                        ';
+                $this->html .= $this->output_admin_options();
+                $this->html .= '
+                                    </div>
+                                </div>';
+                $this->children_holder_classes = " row-children ";
+                $classes .= " be-row-block row ";
+                break;
+
+            case "column":
+                $classes = " be-column-block ";
+                $this->html .= '<div class="block-controls">
+                                    <div class="block-controls-inner panel-heading-btn">
+
+
+                                       <a rel="tooltip" data-placement="top" title="Remove" href="#close" class="remove btn btn-xs btn-danger"><i class="fa fa-times"></i></a>
+
+                                        <a rel="tooltip" data-placement="top" title="Minimize / Maximize" class="collapse-element btn btn-xs btn-warning"><i class="fa fa-minus"></i></a>
+
+                                        <span rel="tooltip" data-placement="top" title="Move" class="drag btn btn-xs btn-white"><i class="fa fa-arrows"></i></span>
+
+                                        <a rel="tooltip" data-placement="top" title="Style Settings" class="style btn btn-xs  btn-white" data-click="" data-original-title="" title=""><i class="fa fa-paint-brush"></i></a>
+
+                                    <div class="dropdown block-add-child-block">
+                                        <a rel="tooltip" data-placement="top" title="Add Block" class="btn btn-xs  btn-white dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown"> <span class="fa fa-plus-square"></span>
+                                        </a>
+
+                                        <ul class="dropdown-menu " role="menu"
+                                            aria-labelledby="dropdownMenu1">
+
+                                        </ul>
+                                        </div>
+                                    </div>
+                                </div>';
+                $this->children_holder_classes = " column-children ";
+                break;
+            case "generic":
+                $freeModeClass = 'freeMode';
+                $classes = " be-content-block ";
+                $this->html .= '<div class="block-controls">
+                                   <div class="block-controls-inner panel-heading-btn">
+
+                                       <a rel="tooltip" data-placement="top" title="Remove" href="#close" class="remove btn btn-xs btn-danger"><i class="fa fa-times"></i></a>
+
+                                        <span rel="tooltip" data-placement="top" title="Move" class="drag btn btn-xs btn-white"><i class="fa fa-arrows"></i></span>
+
+                                     <a rel="tooltip" data-placement="top" title="Style Settings" class="style btn btn-xs  btn-white" data-click="" data-original-title="" title=""><i class="fa fa-paint-brush"></i></a>
+                                    <a rel="tooltip" data-placement="top" title="Undo" href="#undo" class="undo btn btn-xs btn-white"><i class="fa fa-undo"></i></a>
+                                    </div>
+                                </div>';
+                break;
+            case "content":
+                $block_type_class = str_replace('_', '-', $this->type).'-block';
+                if($this->type != 'container')
+                    $block_type_html_class = str_replace('_', '-', $this->type);
+                else
+                    $block_type_html_class = '';
+                echo '
+                    <style>
+                    .editor-mode-active .'.$block_type_class.':before
+                    {
+                        content: "'.ucfirst(str_replace('_', ' ', $this->type)).'";
+                    }
+                    </style>
+                ';
+                $classes = $block_type_class.' '.$block_type_html_class;
+                $this->html .= '<div class="block-controls">
+                                    <div class="block-controls-inner panel-heading-btn">
+
+                                        <a rel="tooltip" data-placement="top" title="Remove" href="#close" class="remove btn btn-xs btn-danger"><i class="fa fa-times"></i></a>
+
+                                        <a rel="tooltip" data-placement="top" title="Minimize / Maximize" class="collapse-element btn btn-xs  btn-warning" data-click="panel-collapse" data-original-title="" title=""><i class="fa fa-minus"></i></a>
+
+                                        <span rel="tooltip" data-placement="top" title="Move" class="drag drag-content btn btn-xs btn-white"><i class="fa fa-arrows"></i></span>';
+
+                if($this->type != 'container' && $this->type != 'content')
+                {
+                    $this->html .= '
+                                            <a rel="tooltip" data-placement="top" title="Settings" block-type="'.$this->type.'" block-name="'.$this->name.'" href="#settings" class="settings btn btn-xs  btn-white"><i class="fa fa-cog"></i></a>';
+                }
+
+                $this->html .= '
+                                        <a rel="tooltip" data-placement="top" title="Style Settings" class="style btn btn-xs  btn-white" data-click="" data-original-title="" title=""><i class="fa fa-paint-brush"></i></a>
+                                        <div class="dropdown block-add-child-block">
+                                            <a rel="tooltip" data-placement="top" title="Add Section" class="btn btn-xs btn-white dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown"> <span class="fa fa-th-large"></span>
+                                            </a>
+	
+                                            <ul class="dropdown-menu " role="menu"
+                                                aria-labelledby="dropdownMenu1">
+												<a role="menuitem" tabindex="-1" href="#" class="insert-block" block-type="row">Row</a>
+                                            </ul>
+                                        </div>';
+
+                $this->html .= $this->output_admin_options();
+
+                $this->html .= "</div>
+                                </div>";
+                $this->children_holder_classes = " content-children ";
+                break;
+
+            case "container":
+                $block_type_class = str_replace('_', '-', $this->type).'-block';
+                if($this->type != 'container')
+                    $block_type_html_class = str_replace('_', '-', $this->type);
+                else
+                    $block_type_html_class = '';
+                echo '
+                    <style>
+                    .editor-mode-active .'.$block_type_class.':before
+                    {
+                        content: "'.ucfirst(str_replace('_', ' ', $this->type)).'";
+                    }
+                    </style>
+                ';
+                $classes = $block_type_class.' '.$block_type_html_class;
+                $this->html .= '<div class="block-controls">
+                                    <div class="block-controls-inner panel-heading-btn">
+
+                                        <a rel="tooltip" data-placement="top" title="Remove" href="#close" class="remove btn btn-xs btn-danger"><i class="fa fa-times"></i></a>
+
+                                        <a rel="tooltip" data-placement="top" title="Minimize / Maximize" class="collapse-element btn btn-xs  btn-warning" data-click="panel-collapse" data-original-title="" title=""><i class="fa fa-minus"></i></a>
+
+                                        <span rel="tooltip" data-placement="top" title="Move" class="drag drag-container btn btn-xs btn-white"><i class="fa fa-arrows"></i></span>';
+
+                if($this->type != 'container' && $this->type != 'content')
+                {
+                    $this->html .= '
+                                            <a rel="tooltip" data-placement="top" title="Settings" block-type="'.$this->type.'" block-name="'.$this->name.'" href="#settings" class="settings btn btn-xs  btn-white"><i class="fa fa-cog"></i></a>';
+                }
+
+                $this->html .= '
+                                        <a rel="tooltip" data-placement="top" title="Style Settings" class="style btn btn-xs  btn-white" data-click="" data-original-title="" title=""><i class="fa fa-paint-brush"></i></a>';
+
+                $this->html .= $this->output_admin_options();
+
+                $this->html .= "</div>
+                                </div>";
+                $this->children_holder_classes = " container-children ";
+                break;
+            default:
+                $freeModeClass = 'freeMode';
+                $block_type_class = str_replace('_', '-', $this->type).'-block';
+                if($this->type != 'container')
+                    $block_type_html_class = str_replace('_', '-', $this->type);
+                else
+                    $block_type_html_class = '';
+                echo '
+                    <style>
+                    .editor-mode-active .'.$block_type_class.':before
+                    {
+                        content: "'.ucfirst(str_replace('_', ' ', $this->type)).'";
+                    }
+                    </style>
+                ';
+                $classes = $block_type_class.' '.$block_type_html_class;
+                $this->html .= '<div class="block-controls">
+                                    <div class="block-controls-inner panel-heading-btn">
+
+                                        <a rel="tooltip" data-placement="top" title="Remove" href="#close" class="remove btn btn-xs btn-danger"><i class="fa fa-times"></i></a>
+
+                                        <a rel="tooltip" data-placement="top" title="Minimize / Maximize" class="collapse-element btn btn-xs  btn-warning" data-click="panel-collapse" data-original-title="" title=""><i class="fa fa-minus"></i></a>
+
+                                        <span rel="tooltip" data-placement="top" title="Move" class="drag btn btn-xs btn-white"><i class="fa fa-arrows"></i></span>';
+
+                                        if($this->type != 'container' && $this->type != 'content')
+                                        {
+                                            $this->html .= '
+                                            <a rel="tooltip" data-placement="top" title="Settings" block-type="'.$this->type.'" block-name="'.$this->name.'" href="#settings" class="settings btn btn-xs  btn-white"><i class="fa fa-cog"></i></a>';
+                                        }
+
+                                        $this->html .= '
+                                        <a rel="tooltip" data-placement="top" title="Style Settings" class="style btn btn-xs  btn-white" data-click="" data-original-title="" title=""><i class="fa fa-paint-brush"></i></a>
+                                        <a rel="tooltip" data-placement="top" title="Undo" href="#undo" class="undo btn btn-xs btn-white"><i class="fa fa-undo"></i></a>';
+
+                $this->html .= $this->output_admin_options();
+
+                $this->html .= "</div>
+                                </div>";
+                break;
+        }
+
+        //$block_content =  "Content ".$this->html;
+        if( $this->type == 'row'
+            || $this->type == 'column'
+            || $this->type == 'footer'
+            || $this->type == 'header'
+            || $this->type == 'page'
+            || $this->type == 'content')
+            $this->html = preg_replace('/{elements}/', $block_content, $this->html, 1);
+        $this->html = preg_replace('/{content}/', $block_content, $this->html, 1);
+
+        $this->include_nested_elements();
 
 
         $css_attributes = $this->data('css_attributes');
@@ -228,8 +543,19 @@
 
         $style = $this->build_style();
 
-        $output = "<div class='block {$classes} {$add_classes} {$this->get_css_classes()}' style=\"{$style}\" name='{$this->name}'>".$this->html."</div>";
-        
+        $html_id = $this->data('html_id');
+        $html_id_string = "";
+
+        if($html_id != null)
+        {
+            $html_id_string = " id=\"$html_id\" ";
+        }
+
+        $output = "<div $html_id_string block-type='{$this->type}' class='block ".$freeModeClass." {$classes} {$add_classes} {$this->get_css_classes()}' style=\"{$style}\" name='{$this->name}'>".$this->block_control_bar().$this->html."</div>";
+
+        $output = str_replace("%site_root%", home_url('/'), $output);
+        $output = str_replace("%theme_root%", get_theme_path(), $output);
+
         if($this->output){
             echo $output;
         }
@@ -238,6 +564,10 @@
         }
 
     }
+     public function block_control_bar()
+     {
+
+     }
     public function build_style($force = true)
     {
         $style_arr = $this->data("style");
@@ -255,7 +585,10 @@
         }
 
         if(isset($style_arr['background-image'])){
-            $style_arr['background-image'] = " url(".$style_arr['background-image'].")";
+            if(strpos($style_arr['background-image'], 'url(') === FALSE)
+                $style_arr['background-image'] = " url(".$style_arr['background-image'].")";
+            else
+                $style_arr['background-image'] = $style_arr['background-image'];
         }
 
         if(isset($style_arr['custom'])){
@@ -287,18 +620,44 @@
         $block->output(false);
         $output .= $block->show();
       }
-      $this->html = preg_replace('/{elements}/', "<div class='block-children block-children-connectable' sortable='true' block-name='{$this->name}'>".$output."</div>", $this->html, 1);
+        if(strpos($this->html, '{elements}') === FALSE)
+        {
+            $this->html .= "{elements}";
+        }
+      $this->html = preg_replace('/{elements}/', "<div class='block-children block-children-connectable row-fluid {$this->children_holder_classes}' sortable='true' block-name='{$this->name}'>".$output."</div>", $this->html, 1);
     }
+     public function has_css_class($class)
+     {
+         $style = $this->data('style');
+         if(!$style)
+             return false;
+
+         return strpos($style, " ".$class." ") !== false;
+     }
     public function add_css_class($class)
     {
         $style = $this->data('style');
         if(!$style)
             $style = array();
-            
+
         if(!isset($style['custom_classes']))
             $style['custom_classes'] = "";
 
-        $style['custom_classes'] .= " ".$class;
+        $style['custom_classes'] .= " ".$class." ";
+
+
+        $this->set_data('style', $style);
+    }
+    public function remove_css_class($class)
+    {
+        $style = $this->data('style');
+        if(!$style)
+            return;
+
+        if(!isset($style['custom_classes']))
+            return;
+
+        $style['custom_classes'] = str_replace(" ".$class." ", "", $style['custom_classes']);
 
 
         $this->set_data('style', $style);
@@ -316,9 +675,9 @@
       $this->set_data('html', $string);
       $this->html = $string;
     }
-    
+
     // Option Functions Begin
-    
+
     public function set_content($content)
     {
         $this->set_data('content', $content);
@@ -341,7 +700,7 @@
     public function set_editable($bool)
     {
       $this->option("editable", $bool);
-    }    
+    }
     // Option Functions End
 
     public function remove_children()
@@ -362,16 +721,21 @@
         array_push($this->blocks, $block);
         //print_r($this->blocks);
     }
+    public function add_block_first($block)
+    {
+        //$this->blocks[count($this->blocks)] = &$block;
+        array_unshift ( $this->blocks , $block );
+        //print_r($this->blocks);
+    }
     public function get_id()
     {
         return $this->id;
     }
     public function initialize($db_result)
     {
-        PC::debug($db_result, 'block::initialize');
         //print_r($db_result);
         //echo debug_print_backtrace();
-        $this->id   = $db_result->id; 
+        $this->id   = $db_result->id;
         $this->data = json_decode($db_result->data, true);
         $this->global = $db_result->global == 'yes';
         $this->type = $db_result->type;
@@ -380,8 +744,8 @@
         foreach($db_result->children as $child_name)
         {
             $child = new Block($child_name);
-            $this->add_block($child);
             $child->load();
+            $this->add_block($child);
         }
     }
 
@@ -411,7 +775,7 @@
     }
         function admin_textarea($var, $title, $value = "")
         {
-            
+
             echo"
             <div class=\"control-group\">
                 <label class=\"control-label\" for=\"required\" style='width: 80px'><b>$title</b></label>
@@ -441,7 +805,7 @@
         {
             $style = $this->data("style");
 
-                
+
             if($style && isset($style[$var]) && $style[$var] != null)
                 $value = $style[$var];
 
@@ -455,16 +819,22 @@
                 $checked = "";
                 $width = "100%";
             }
-                
 
-            echo"
+
+            echo'
+            <div class="form-group">
+                <label for="exampleInputEmail1">'.$title.'</label>
+                <input type="'.$type.'" name="'.$var.'" class="form-control" '.$checked.' value="'.$value.'" ng-model="'.$var.'" placeholder="'.$placeholder.'">
+            </div>';
+
+            /*echo"
             <div class=\"control-group\">
                 <label class=\"control-label\" for=\"required\" style='width: 80px; '><b>$title</b></label>
                 <div class=\"controls controls-row\" style='margin-left: 85px;text-align:left'>
                     <input type=\"$type\" name=\"$var\" class=\"span2\" style='width: $width' $checked value='$value' ng-model='$var' placeholder='$placeholder'>
                 </div>
             </div><!-- End .control-group  -->
-            ";
+            ";*/
         }
 
         function admin_file($var, $title, $value = "")
@@ -534,7 +904,7 @@
         global $active_show;
         $this->BuilderEngine = &$active_show->controller->BuilderEngine;
         $this->global = false;
-        
+
         $this->classes = $classes;
 
         if(!$this->forced_global){
@@ -542,7 +912,7 @@
         }
         $this->id = $id;
         $this->style = $style;
-        
+
 
         $ci =& get_instance();
         $ci->load->model('versions');
@@ -574,11 +944,11 @@
     {
         if($this->is_new)
             $this->content = $content;
-        
+
     }
     function initialize()
     {
-        
+
 
         switch(is_int($this->id))
         {
@@ -610,11 +980,11 @@
         $version = 0;
 
         if($this->global){
-            $version = $this->versions->get_current_layout_version(); 
+            $version = $this->versions->get_current_layout_version();
         }else{
             $version = $this->versions->get_current_page_version();
         }
-            
+
 
         $this->versions->bind_block_to_page_version($this->id, $version);
 
@@ -643,7 +1013,7 @@
     function show()
     {
         if($this->is_new){
-            $this->initialize();  
+            $this->initialize();
         }
         $expand = " expand='false' ";
         if($this->is_ok_with_expand)
@@ -668,7 +1038,7 @@
     {
         $this->style_classes = $classes; // Do not play smart by moving this line after the parent constructor. You have been warned!
         parent::__construct($id,"");
-        
+
         $this->global = false;
         if($this->is_new){
             $this->initialize("");
@@ -685,9 +1055,9 @@
             else
                 return $this->css[$key] ;
         }else{
-            $this->css[$key] = $value;   
+            $this->css[$key] = $value;
         }
-        
+
     }
     function compile_css()
     {
@@ -725,8 +1095,8 @@
          // Do not play smart by moving this line after the parent constructor. You have been warned!
         parent::__construct($id,$icon_class, $style);
         $this->type = "icon";
-        
-        
+
+
     }
     function force_class($class)
     {
@@ -754,8 +1124,8 @@
          // Do not play smart by moving this line after the parent constructor. You have been warned!
         parent::__construct($id,$bg_class, $style);
         $this->type = "background_selector";
-        
-        
+
+
     }
     function force_class($class)
     {

@@ -1,369 +1,241 @@
-<?php
-/***********************************************************
-* BuilderEngine v2.0.12
-* ---------------------------------
-* BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
-*
-* http://www.builderengine.com
-* Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
-*
-***********************************************************/
- if(!is_installed()): ?>
-<script>
-$(document).ready(function(){
-  $("#collapse-nav").addClass('collapse');
-                    $("#collapse-nav").text("");
-                    
-                    $('#sidebar').addClass('isCollapse');
-                    $('.sidebar-widget').addClass('hided');
-                    $('#content').addClass('isCollapse');  
-                    localStorage.setItem("collapseNav", 0); 
-    
-});
-</script>
-<?php endif?>
-<aside id="sidebar" >
-            <div class="side-options">
-                <ul>
-                    <li>
-                    <a href="#" id="collapse-nav" class="act act-primary tip" title="Collapse navigation" style><i class="icon16 i-arrow-left-7"></i></a></li>
+<!-- begin #sidebar -->
+<div id="sidebar" class="sidebar">
+<!-- begin sidebar scrollbar -->
+<div data-scrollbar="true" data-height="100%">
+<!-- begin sidebar user -->
+<a href="<?=base_url('/editor')?>" style="text-decoration: none;">
+<ul class="nav">
+    <li class="nav-profile">
+        <div class="image">
+            <i class="fa fa-edit"></i>
+        </div>
+        <div class="info">
+            <b>Frontend</b>
+            <small>Edit / View Website</small>
+        </div>
+    </li>
+</ul>
+</a>
+<!-- end sidebar user -->
+<!-- begin sidebar nav -->
+<ul class="nav">
+    <li class="nav-header">Administration Panel</li>
+    <li class="has-sub active">
+        <a href="<?php echo home_url('admin')?>">
+            <b class="pull-right"></b>
+            <i class="fa fa-laptop"></i>
+            <span>Dashboard</span>
+        </a>
+
+    </li>
+    <li class="has-sub">
+        <a href="javascript:;">
+            <b class="caret pull-right"></b>
+            <i class="fa fa-users"></i>
+            <span>User Accounts</span>
+        </a>
+        <ul class="sub-menu" <?php if(isset($current_page) && ($current_page == 'users' || $current_page == 'groups')) echo 'style="display:block"';?>>
+            <li><a <?php echo href("admin", "user/add")?>>Add New User</a></li>
+            <li><a <?php echo href("admin", "user/search")?>>Search Users</a></li>
+            <li class="has-sub">
+                <a href="javascript:;">
+                    <b class="caret pull-right"></b>
+                    User Group Accounts
+                </a>
+                <ul class="sub-menu" <?php if(isset($current_page) && $current_page == 'groups') echo 'style="display:block"';?>>
+                    <li><a <?php echo href("admin", "user/add_group")?>>Add New Group</a></li>
+                    <li><a <?php echo href("admin", "user/groups")?>>Edit/Show Groups</a></li>
                 </ul>
-            </div>
+            </li>
+			<li class="has-sub">
+                <a href="javascript:;">
+                    <b class="caret pull-right"></b>
+                    User Register Settings
+                </a>
+                <ul class="sub-menu" <?php if(isset($current_child_page) && $current_child_page == 'register') echo 'style="display:block"';?>>
+                    <li><a <?php echo href("admin", "user/register_settings")?>>Sign-up Verification</a></li>
+                    <li><a <?php echo href("admin", "user/register_email_settings")?>>Email Messages</a></li>
+                    <li><a <?php echo href("admin", "user/register_glogbal_settings")?>>Global Settings</a></li>
+                </ul>
+            </li>
+			<li><a <?php echo href("admin", "user/user_dashboard_settings")?>>User Dashboard</a></li>
+        </ul>
+    </li>
+    <li class="has-sub">
+        <a href="javascript:;">
+            <b class="caret pull-right"></b>
+            <i class="fa fa-link"></i>
+            <span>Navigation Links</span>
+        </a>
+        <ul class="sub-menu" <?php if(isset($current_page) && $current_page == 'navigation') echo 'style="display:block"';?>>
+            <li><a <?php echo href("admin", "links/add")?>>Add New Link</a></li>
+            <li><a <?php echo href("admin", "links/show")?>>Edit/Show Links</a></li>
+        </ul>
+    </li>
+    <!--<li class="has-sub">
+        <a href="javascript:;">
+            <b class="caret pull-right"></b>
+            <i class="fa fa-newspaper-o"></i>
+            <span>Website Pages</span>
+        </a>
+        <ul class="sub-menu">
+            <li><a href="add_page.html">Add New Page</a></li>
+            <li><a href="pages_search.html">Edit/Show Pages</a></li>
+        </ul>
+    </li>-->
+    <?php
+    $links = get_admin_links();
+    foreach($links as $key => $menu):
+        $module = $key;
+        $module[0] = strtoupper($module[0]);
+        ?>
+        <?php if($module == 'Pages'):?>
+            <li class="has-sub">
+                <a href="#">
+                    <b class="caret pull-right"></b>
+                    <i class="fa fa-file-o"></i>
+                    <span><?php echo 'Website Pages';?></span>
+                </a> 
+                <ul class="sub-menu">
+                    <?php foreach( $links[$key] as $sub_key => $link):
 
-            <div class="sidebar-wrapper" <?php if(!is_installed()): ?>style="visibility: hidden"<?php endif;?>>
-            
-                <nav id="mainnav">
-                    <?php if(is_installed()): ?>
-                    <ul class="nav nav-list">
-                        <li>
-                            <a <?php echo href("admin", "main/dashboard")?>>
-                                <span class="icon"><i class="icon20 i-screen"></i></span>
-                                <span class="txt">Dashboard</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#">
-                                <span class="icon"><i class="icon20 i-users"></i></span>
-                                <span class="txt">Users</span>
-                            </a>
-                            <ul class="sub">
-                                <li>
-                                    <a <?php echo href("admin", "user/add")?>>
-                                        <span class="icon"><i class="icon20 i-user-plus"></i></span>
-                                        <span class="txt">Add New</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a <?php echo href("admin", "user/search")?>>
-                                        <span class="icon"><i class="icon20  i-search-5"></i></span>
-                                        <span class="txt">Search Users</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#">
-                                        <span class="icon"><i class="icon20 i-users-4"></i></span>
-                                        <span class="txt">User Groups</span>
-                                    </a>
-                                    <ul class="sub">
-                                <li>
-                                    <a <?php echo href("admin", "user/add_group")?>>
-                                        <span class="icon"><i class="icon20 i-user-plus"></i></span>
-                                        <span class="txt">Add New</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a <?php echo href("admin", "user/groups")?>>
-                                        <span class="icon"><i class="icon20  i-search-5"></i></span>
-                                        <span class="txt">All Groups</span>
-                                    </a>
-                                </li>
-
-                                
-                            </ul>
-                                </li>
-                                
-                            </ul>
-                        </li>
-                        
-                        <li>
-                            <a href="#">
-                                <span class="icon"><i class="icon20 i-link"></i></span>
-                                <span class="txt">Main Menu Links</span>
-                            </a>
-                            <ul class="sub">
-                                <li>
-                                    <a <?php echo href("admin", "links/add")?>>
-                                        <span class="icon"><i class="icon20 i-user-plus"></i></span>
-                                        <span class="txt">Add New</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a <?php echo href("admin", "links/show")?>>
-                                        <span class="icon"><i class="icon20  i-search-5"></i></span>
-                                        <span class="txt">Show All</span>
-                                    </a>
-                                </li>
-                                
-                                
-                            </ul>
-                        </li>
-                        
-                        <li>
-                            <a href="#">
-                                <span class="icon"><i class="icon20 i-cogs"></i></span>
-                                <span class="txt">Settings</span>
-                            </a>
-                            <ul class="sub">
-                                <li>
-                                    <a <?php echo href("admin", "main/settings")?>>
-                                        <span class="icon"><i class="icon20 i-cog-3"></i></span>
-                                        <span class="txt">General</span>
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a <?php echo href("admin", "themes/show")?>>
-                                        <span class="icon"><i class="icon20  i-palette"></i></span>
-                                        <span class="txt">Themes</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a <?php echo href("admin", "modules/show")?>>
-                                        <span class="icon"><i class="icon20  i-cube-3"></i></span>
-                                        <span class="txt">Modules</span>
-                                    </a>
-                                </li>
-                                
-                                
-                            </ul>
-                        </li>
-
-                        <li>
-                            <a <?php echo href("admin", "files/show")?>>
-                                <span class="icon"><i class="icon20 i-cloud-upload"></i></span>
-                                <span class="txt">File Manager</span>
-                            </a>
-         
-                        </li>
-
-                        <li>
-                            <a <?php echo href("admin", "modules/market")?>>
-                                <span class="icon"><i class="icon20 i-cart-4"></i></span>
-                                <span class="txt">Builder Market</span>
-                            </a>
-                        </li>
-                            
-                        
-                        <?php 
-                        
-                        $links = get_admin_links();
-                        foreach($links as $key => $menu):
-                        $module = $key;
-                        $module[0] = strtoupper($module[0]); 
                         ?>
-                            <li>
-                                    <a href="#">
-                                        <span class="icon"><i class="icon20 i-table-2"></i></span>
-                                        <span class="txt"><?php echo $module?></span>
-                                    </a>
+                            <?php if(is_array($links[$key][$sub_key])): ?>
+                        <li class="has-sub">
+                            <a href="javascript:;">
+                                <?php else: ?>
+                        <li>
+                        <?php // echo $link;?>
+                                <a href="<?php echo $link?>">
+                                    <?php endif;?>
+                                    <?php echo $sub_key?>
+                                </a>
+                                <?php if(is_array($links[$key][$sub_key])): ?>
                                     <ul class="sub">
-                                       <?php foreach( $links[$key] as $sub_key => $link): 
-                                            
-                                       ?>
-                                        <li>
-                                            <?php if(is_array($links[$key][$sub_key])): ?>
-                                            <a href="#">
-                                            <?php else: ?>
-                                            <a href="<?php echo $links[$key][$sub_key]?>">
-                                            <?php endif;?>
-                                                <span class="icon"><i class="icon20 i-table"></i></span>
-                                                <span class="txt"><?php echo $sub_key?></span>
-                                            </a>
-                                            <?php if(is_array($links[$key][$sub_key])): ?>
-                                                <ul class="sub">
-                                                    <?php foreach($links[$key][$sub_key] as $sub_sub_key => $link): ?>
-                                                        <li>
-                                                            <a href="<?php echo $link?>">
-                                                                <span class="icon"><i class="icon20 i-table-2"></i></span>
-                                                                <span class="txt"><?php echo $sub_sub_key?></span>
-                                                            </a>
-                                                        </li>
-                                                    <?php endforeach; ?>
-                                                </ul>        
-                                            <?php endif; ?>
-                                        </li>
+                                        <?php foreach($links[$key][$sub_key] as $sub_sub_key => $link): ?>
+                                            <li>
+                                                <a href="<?php echo $link?>">
+                                                    <?php echo $sub_sub_key?>
+                                                </a>
+                                            </li>
                                         <?php endforeach; ?>
-
                                     </ul>
-                                </li>
+                                <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
 
-                       
-                                
-                        <?php endforeach; ?>
-                           <?php 
-                            /*$modules = get_modules();
-                            foreach($modules as $module): ?>
-                                <li>
-                                    <a href="#">
-                                        <span class="icon"><i class="icon20 i-table-2"></i></span>
-                                        <span class="txt"><?php echo $module->name?></span>
-                                    </a>
-                                    <ul class="sub">
-                                       <?php foreach( get_admin_links($module->folder_name) as $link): ?>
-                                        <li>
-                                            <a href="/index.php/admin/module<?php echo $link['handle']?>">
-                                                <span class="icon"><i class="icon20 i-table"></i></span>
-                                                <span class="txt"><?php echo $link['name']?></span>
-                                            </a>
-                                        </li>
-                                        <?php endforeach; ?>
+                </ul>
+            </li>
+        <?php endif;?>
+    <?php endforeach; ?>
+    <li class="has-sub">
+        <a <?php echo href("admin", "files/show")?>>
+            <i class="fa fa-floppy-o"></i>
+            <span>File Manager</span></span>
+        </a>
+    </li>
+    <li class="has-sub">
+        <a href="javascript:;">
+            <b class="caret pull-right"></b>
+            <i class="fa fa-cogs"></i>
+            <span>Settings</span>
+        </a>
+        <ul class="sub-menu" <?php if(isset($current_page) && $current_page == 'settings') echo 'style="display:block"';?>>
+            <li><a <?php echo href("admin", "main/settings")?>>Website Settings</a></li>
+            <li><a <?php echo href("admin", "main/seo_settings")?>>Search Engine Settings</a></li>
+            <li><a <?php echo href("admin", "modules/show")?>>Edit/Show Modules</a></li>
+            <li><a <?php echo href("admin", "backup/backup")?>>Backup</a></li>
+            <li><a <?php echo href("admin", "backup/restore")?>>Restore</a></li>
+        </ul>
+    </li>
+    <li class="has-sub">
+        <a href="javascript:;">
+            <b class="caret pull-right"></b>
+            <i class="fa fa-th"></i>
+            <span>Templates</span>
+        </a>
+        <ul class="sub-menu">
+            <li><a <?php echo href("admin", "themes/show")?>>Edit/View Themes</a></li>
+        </ul>
+    </li>
+    <li class="nav-header">Modules / Apps Panel</li>
 
-                                    </ul>
-                                </li>
-                            
-                        <?php  endforeach; ?> */
+	    <?php
+
+    $links = get_admin_links();
+    foreach($links as $key => $menu):
+        $module = $key;
+        $module[0] = strtoupper($module[0]);
+        ?>
+        <?php if($module != 'Pages'):?>
+            <li class="has-sub">
+                <a href="javascript:;">
+                    <b class="caret pull-right"></b>
+                    <i class="fa fa-cube"></i>
+                    <span><?php echo $module?></span>
+                </a>
+                <ul class="sub-menu">
+                    <?php foreach( $links[$key] as $sub_key => $link):
+
                         ?>
-                        
-                        
-                    </ul>
-                    <?php endif?>
-                </nav> <!-- End #mainnav -->
 
-                <div class="sidebar-widget center">
-                    <h4 class="sidebar-widget-header"><i class="icon i-pie-2"></i> Basic stats</h4>
-                    <div class="spark-stats">
-                        <ul>
-                            <li>
-                                <a href="#">
-                                    <span class="txt">Visits</span>
-                                    <?php 
-                            $day = 86400;
-                            $this_week = $this->BuilderEngine->get_total_site_visits(time()-(7*$day),time(), "all");
-                            $last_week = $this->BuilderEngine->get_total_site_visits(time()-(14*$day),time()-(7*$day), "all");
-                            
-                            if($last_week == 0)
-                                $percent = 0;
-                            else
-                                $percent = round($this_week / $last_week * 100);
-                            if($percent > 9999)
-                                $percent = 9999;
-                            if($percent < 100)
-                                $percent = -(100 - $percent);
-                                        ?>
-
-                                    <?php if($percent > 0):?>
-                                            <span class="positive">
-                                        <?php else:?>
-                                            <span class="negative">
-                                        <?php endif;?>
-                                        
-                                        <?php if($percent > 0):?>
-                                            <span class="up"></span>
-                                        <?php else:?>
-                                            <span class="down"></span>
-                                        <?php endif;?>
-                                        
-
-                                        <span class="number"><?php echo abs($percent)?><small>%</small></span>
-                                    </span>
-                                    <span class="spark">
-                                        <?php 
-                                        $visits = $BuilderEngine->get_site_visits("all", 10, false);
-                                        ?>
-                                        <?php if($percent > 0):?>
-                                            <span class="positive">
-                                        <?php else:?>
-                                            <span class="negative">
-                                        <?php endif;?>
-
-                                        
-                                            <?php 
-                                            if($visits > 0)
-                                            {
-                                                $string = "";
-                                                foreach ( array_reverse($visits) as $day){
-                                                    $string .= $day.",";
-                                                }
-                                                echo trim($string, ",");
-                                            }
-                                            ?>
-
-                                           
-                                            </span>
-                                    </span>
+                            <?php if(is_array($links[$key][$sub_key])): ?>
+                        <li class="has-sub">
+                            <a href="javascript:;">
+                                <?php else: ?>
+                        <li>
+                                <a href="<?php echo $link?>">
+                                    <?php endif;?>
+                                    <b class="caret pull-right"></b>
+                                    <?php echo $sub_key?>
                                 </a>
-                            </li>
-                            <li>
-                                <a href="#">
-                                    <span class="txt">Unique Visitors</span>
-                                    <?php 
-                            $day = 86400;
-                            $this_week = $this->BuilderEngine->get_total_site_visits(time()-(7*$day),time(), "unique");
-                            $last_week = $this->BuilderEngine->get_total_site_visits(time()-(14*$day),time()-(7*$day), "unique");
-                            
-                            if($last_week == 0)
-                                $percent = 0;
-                            else
-                                $percent = round($this_week / $last_week * 100);
-                            if($percent > 9999)
-                                $percent = 9999;
-                            if($percent < 100)
-                                $percent = -(100 - $percent);
-                                        ?>
-                                        
-                                    <?php if($percent > 0):?>
-                                            <span class="positive">
-                                        <?php else:?>
-                                            <span class="negative">
-                                        <?php endif;?>
-                                        
-                                        <?php if($percent > 0):?>
-                                            <span class="up"></span>
-                                        <?php else:?>
-                                            <span class="down"></span>
-                                        <?php endif;?>
-                                        
+                                <?php if(is_array($links[$key][$sub_key])): ?>
+                                    <ul class="sub-menu">
+                                        <?php foreach($links[$key][$sub_key] as $sub_sub_key => $link): ?>
+                                            <li>
+                                                <a href="<?php echo $link?>">
+                                                    <?php echo $sub_sub_key?>
+                                                </a>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
 
-                                        <span class="number"><?php echo abs($percent)?><small>%</small></span>
-                                    </span>
-                                    <span class="spark">
-                                        <?php 
-                                        $visits = $BuilderEngine->get_site_visits("unique", 10, false);
-                                        ?>
-                                        <?php if($percent > 0):?>
-                                            <span class="positive">
-                                        <?php else:?>
-                                            <span class="negative">
-                                        <?php endif;?>
+                </ul>
+            </li>
+        <?php endif;?>
 
-                                        
-                                            <?php 
-                                            if($visits > 0)
-                                            {
-                                                $string = "";
-                                                foreach ( array_reverse($visits) as $day){
-                                                    $string .= $day.",";
-                                                }
-                                                echo trim($string, ",");
-                                            }
-                                            ?>
+    <?php endforeach; ?>
+    <li class="nav-header">Marketplace Panel</li>
+    <li class="has-sub color-green">
+        <a href="javascript:;">
+            <i class="fa fa-cloud"></i>
+            <span>Cloud Apps / Packages</span>
+        </a>
+    </li>
+    <li class="has-sub">
+        <a href="javascript:;">
+            <b class="caret pull-right"></b>
+            <i class="fa fa-shopping-cart"></i>
+            <span>BuilderMarket</span>
+        </a>
+       <!--  <ul class="sub-menu">
+            <li><a <?php echo href("admin", "module/builder_market/modules")?>>Modules / Apps</a></li>
+            <li><a <?php echo href("admin", "module/builder_market/themes")?> >Template Themes</a></li>
+            <li><a <?php echo href("admin", "module/builder_market/blocks")?>>Blocks</a></li>
+        </ul>-->
+    </li>
 
-                                           
-                                            </span>
-                                    </span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div><!-- End .spark-stats -->
-                </div><!-- end .sidebar-widget -->
+    <!-- begin sidebar minify button -->
+    <li><a href="javascript:;" class="sidebar-minify-btn" data-click="sidebar-minify"><i class="fa fa-angle-double-left"></i></a></li>
+    <!-- end sidebar minify button -->
 
-                <div class="sidebar-widget center">
-                    <h4 class="sidebar-widget-header"><i class="icon i-fire-2"></i> Site overload</h4>
-                    <div id="gauge" style="width:200px; height:150px;"></div>
-                    <div id="gauge1" style="width:200px; height:150px;"></div>
-                </div><!-- end .sidebar-widget -->
-             
-            </div> <!-- End .sidebar-wrapper  -->
-        </aside><!-- End #sidebar  -->
+</ul>
+<!-- end sidebar nav -->
+</div>
+<!-- end sidebar scrollbar -->
+</div>
+<div class="sidebar-bg"></div>
+<!-- end #sidebar -->

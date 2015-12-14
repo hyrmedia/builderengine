@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
@@ -45,7 +45,7 @@
             $data = array();
             if($page_files)
                 $data['theme_pages'] = $page_files;
-            $this->load->view("add_page", $data);
+            $this->load->view("backend/add_page", $data);
         }
         
 
@@ -53,12 +53,14 @@
 
         function edit_page($id){
             $this->load->model("pages");
-            if($_POST)
+            if($_POST){
+                $this->pages->edit_page_link($_POST['old_name'], $_POST);
                 $this->pages->edit($_POST['id'], $_POST);
+            }
             
             $data['page'] = $this->pages->get($id);
                 
-            $this->load->view("edit_page", $data);
+            $this->load->view("backend/edit_page", $data);
         }
         
         function delete_page($id)
@@ -90,7 +92,7 @@
             }
 
             
-            $this->load->view("show_pages", $data);
+            $this->load->view("backend/show_pages", $data);
         }
     }  
 ?>

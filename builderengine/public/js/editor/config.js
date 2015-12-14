@@ -9,9 +9,23 @@ CKEDITOR.editorConfig = function( config )
 	// config.language = 'fr';
 	// config.uiColor = '#AADC6E';asdasd
 	config.extraPlugins = "sourcedialog";
-   config.filebrowserBrowseUrl = '/admin/files/show/embedded';
-   config.filebrowserImageBrowseUrl = '/admin/files/show/embedded/?type=Images';
-   config.filebrowserFlashBrowseUrl = '/admin/files/show/embedded/?type=Flash';
+	config.language = 'en';
+	config.language_list = [ 'en:English' ];
+	config.skin = 'icy_orange';
+	config.extraPlugins = 'ckeditor-gwf-plugin';
+	config.font_names = 'GoogleWebFonts;' +
+	'Arial/Arial, Helvetica, sans-serif;' +
+	'Comic Sans MS/Comic Sans MS, cursive;' +
+	'Courier New/Courier New, Courier, monospace;' +
+	'Georgia/Georgia, serif;' +
+	'Lucida Sans Unicode/Lucida Sans Unicode, Lucida Grande, sans-serif;' +
+	'Tahoma/Tahoma, Geneva, sans-serif;' +
+	'Times New Roman/Times New Roman, Times, serif;' +
+	'Trebuchet MS/Trebuchet MS, Helvetica, sans-serif;' +
+	'Verdana/Verdana, Geneva, sans-serif';
+   config.filebrowserBrowseUrl = site_root + '/admin/files/show/embedded';
+   config.filebrowserImageBrowseUrl = site_root + '/admin/files/show/embedded/?type=Images';
+   config.filebrowserFlashBrowseUrl = site_root + '/admin/files/show/embedded/?type=Flash';
    /*config.filebrowserUploadUrl = '/admin/files/connector?cmd=upload&type=Files';
    config.filebrowserImageUploadUrl = '/admin/files/connector?cmd=upload&type=Images';
    config.filebrowserFlashUploadUrl = '/admin/files/connector?cmd=upload&type=Flash';*/
@@ -20,4 +34,3 @@ CKEDITOR.editorConfig = function( config )
    config.protectedSource.push(/<img[^>]*><\/img>/g);
    CKEDITOR.dtd.$removeEmpty['i'] = false;
 };
-

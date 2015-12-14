@@ -1,122 +1,219 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
-* ---------------------------------
-* BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
-*
-* http://www.builderengine.com
-* Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
-*
-***********************************************************/
+ * BuilderEngine v3.1.0
+ * ---------------------------------
+ * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
+ * Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
+ *
+ * http://www.builderengine.com
+ * Email: info@builderengine.com
+ * Time: 2015-08-31 | File version: 3.1.0
+ *
+ ***********************************************************/
 
-    error_reporting(0);
-    class admin_update extends BE_Controller
+error_reporting(0);
+
+class Admin_update extends BE_Controller
+{
+
+    function admin_install()
     {
-    
-        function admin_install()
-        {
-            
-            parent::__construct();
-           
-            if($this->is_installed())
-                redirect("/", 'location');
-             
+        parent::__construct();
+
+        if($this->is_installed())
+            redirect("/", 'location');
+
+    }
+
+    /**
+     *
+     */
+    function check_updates()
+    {
+
+        echo $this->update_check();
+    }
+
+    function prepare_update(){
+        header('Content-Type: application/json');
+        if (file_exists(APPPATH.'update/backup.zip')) {
+            unlink(APPPATH.'update/backup.zip');
         }
-        function get_updates_num()
-        {
-            $current_version = $this->BuilderEngine->get_option('version');
-            $url = "http://update-server.builderengine.com/check_updates_num.php?version=".$current_version.'&time='.time();
-            $updates = file_get_contents($url);
-            echo $updates;
+        if (file_exists(APPPATH.'update/update.zip')) {
+            unlink(APPPATH.'update/update.zip');
         }
-        function download()
-        {
-            @mkdir(APPPATH."update");
-            $update_file = file_get_contents("http://update-server.builderengine.com/download.php?version=".$this->BuilderEngine->get_option('version').'&time='.time());
-            $file_path = APPPATH."update/update.zip";
-            file_put_contents($file_path, $update_file);
-            if(file_get_contents($file_path) == $update_file)
-                echo "success";
-            else
-                echo "Unable to download update.";
-            
+        echo json_encode(array('result'=>TRUE));
+
+    }
+
+
+
+    function set_backup(){
+
+        try {
+
+            $zip = new ZipArchive();
+            $file_path = APPPATH.'update/backup.zip';
+            if (file_exists($file_path)) {
+                $zip->open($file_path);
+            }else{
+                $zip->open(APPPATH.'update/backup.zip', ZipArchive::CREATE);
+            }
+
+            $files = json_decode($this->input->post('file_set'));
+
+            foreach($files as $file){
+                $zip->addFile($file, $file);
+            }
+
+            $zip->close();
+
+            echo json_encode(array('result' => TRUE));
+
+        } catch (Exception $e) {
+            echo json_encode(array('result'=>$e));
         }
-        function update_files(){
-            $zip = new ZipArchive;
+
+    }
+
+
+    function download()
+    {
+
+        header('Content-Type: application/json');
+
+        @mkdir(APPPATH."update");
+
+        $update_file = $this->update_download($this->input->post('ver'));
+        $asked = json_decode($this->input->post('asked'));
+
+        $file_path = APPPATH."update/update.zip";
+        file_put_contents($file_path, $update_file);
+        if(file_get_contents($file_path) == $update_file){
+            $zip = new ZipArchive();
             $file_path = APPPATH."update/update.zip";
             if ($zip->open($file_path) === TRUE) {
-                $zip->extractTo('.');
+
+                $files_beign_modified = array();
+
+                for ($i = 0; $i < $zip->numFiles; $i++){
+                    $_file = $zip->statName($zip->getNameIndex($i));
+                    if( (!preg_match("/\/$/", $_file['name'])) && (!in_array($_file['name'], $asked)) )
+                    {//is not a directory...
+                        array_push($asked,$_file['name']);
+                        if(file_exists($_file['name'])){
+                            if( (int)sprintf("%u",$_file['crc']) !== (int)sprintf("%u", crc32(file_get_contents($_file['name']))) )
+                            {
+                                $found = FALSE;
+                                if (file_exists(APPPATH.'update/backup.zip')) {
+                                    $zip_target = new ZipArchive();
+                                    if ($zip_target->open(APPPATH.'update/backup.zip') === TRUE) {
+                                        for ($j = 0; $j < $zip_target->numFiles; $j++){
+                                            $_bked_file = $zip_target->statName($zip_target->getNameIndex($j));
+                                            if($_bked_file['name'] ===  $_file['name']){
+                                                $found = TRUE;
+                                                break;
+                                            }
+                                        }
+                                        $zip_target->close();
+                                    }
+                                }
+                                if(!$found){
+                                    array_push($files_beign_modified, $_file['name']);
+                                }
+                            }
+                        }
+                    }
+                }
                 $zip->close();
-                
-
-                
-                unlink(APPPATH."update/update.zip");
-
-                if(file_exists(APPPATH."update/update.php"))
-                    include(APPPATH."update/update.php");
-                
-                echo 'success';
-            } else {
-                echo 'failed';
+                echo json_encode(array(
+                    'result' 	=>	true,
+                    'files'		=>	$files_beign_modified,
+                    'asked'   =>  $asked
+                ));
             }
         }
-        
-        function update_db()
-        {
-            if(!file_exists(APPPATH."update/sql/update.sql")){
-                echo "success";
-                return;
-            }
-                
-            $sql = file_get_contents(APPPATH."update/sql/update.sql");
+        else
+            echo json_encode(array('result' => false));
 
-            $query = explode (";", $sql);
-                
-            unset($query[count($query)]);
-            foreach($query as $statement){
-                if($statement)
-                    $this->db->query($statement);
-            }
-            unlink(APPPATH."update/sql/update.sql");
-            echo "success";
+    }
+    function update_files(){
+        header('Content-Type: application/json');
+        $zip = new ZipArchive;
+        $file_path = APPPATH."update/update.zip";
+        if ($zip->open($file_path) === TRUE) {
+            $zip->extractTo('.');
+            $zip->close();
+
+
+
+            unlink(APPPATH."update/update.zip");
+
+            if(file_exists(APPPATH."update/update.php"))
+                include(APPPATH."update/update.php");
+
+            unlink(APPPATH."update/update.php");
+            echo json_encode(array('result'=>TRUE));
+        } else {
+            echo json_encode(array('result'=>FALSE));
         }
-        function finish()
-        {
-            $current_version = $this->BuilderEngine->get_option('version');
-            $remote_version = file_get_contents("http://update-server.builderengine.com/check.php?version=".$current_version.'&time='.time());
-            $this->BuilderEngine->set_option('version',$remote_version);
+    }
 
-            $current_version = $remote_version;
-            $remote_version = file_get_contents("http://update-server.builderengine.com/check.php?version=".$current_version.'&time='.time());
-
-            $this->load->model("users");
-            $this->users->delete_alerts_with_tag("be-update");
-
-            if($remote_version != $current_version)
-                echo "repeat";
-            else
-                echo "success";
+    function update_db()
+    {
+        header('Content-Type: application/json');
+        if(!file_exists(APPPATH."update/sql/update.sql")){
+            echo json_encode(array('result'=>TRUE));
+            return;
         }
-        function index()
-        {
-            $current_version = $this->BuilderEngine->get_option('version');
-            $remote_version = file_get_contents("http://update-server.builderengine.com/check.php?version=".$current_version.'&time='.time());
 
-            if($current_version == $remote_version)
-                redirect('/admin', 'location');
+        $sql = file_get_contents(APPPATH."update/sql/update.sql");
+
+        $query = explode (";", $sql);
+
+        unset($query[count($query)]);
+        foreach($query as $statement){
+            if($statement)
+                $this->db->query($statement);
+        }
+        unlink(APPPATH."update/sql/update.sql");
+        echo json_encode(array('result'=>TRUE));
+    }
+    function finish()
+    {
+        header('Content-Type: application/json');
+        $this->BuilderEngine->set_option('version',$this->input->post('ver'));
+
+        Modules::run("builder_market/admin/update_products");
+        /*
+        $this->load->model("users");
+        $this->users->delete_alerts_with_tag("be-update");
+        */
+        echo json_encode(array('result'=>TRUE));
+    }
+    function index()
+    {
+
+        $updates = json_decode($this->update_check());
+
+        if($updates->result && $updates->available_updates > 0){
+
             $requirements = array();
             $requirements['writable'] = check_writable_recurse(".") ;
             $requirements['php_version'] = check_php_version("5.0") ;
             $requirements['mysql_available'] = function_exists("mysql_connect") && function_exists("mysql_select_db") && function_exists("mysql_query") ;
             $requirements['mod_rewrite'] = getenv(HTTP_MOD_REWRITE) == "On" ;
-            
+
+            $data['requirements'] = $requirements;
+            //$this->show->backend('maintenance/update', $data);
+            $this->load->helper('bs_progressbar');
+            $this->show->backend('maintenance_update', $data);
+
+        }else{
+            redirect('/admin', 'location');die;
+        }
 
 
-            $data['requirements'] = $requirements;    
-            $this->show->backend('maintenance/update', $data);   
-
-        }    
     }
+}
 ?>

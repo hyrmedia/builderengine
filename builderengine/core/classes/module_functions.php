@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
     class ModuleSystem
@@ -40,9 +40,9 @@
             {
                 $entry['name'] = $link[1];
                 $entry['handle'] = $handler; 
-                self::$admin_links[$link[0]][$link[1]][$link[2]] = "/index.php/admin/module/".$module."/".$handler;    
+                self::$admin_links[$link[0]][$link[1]][$link[2]] = home_url("/admin/module/".$module."/".$handler);    
             }else if(count($link) > 1){
-                self::$admin_links[$link[0]][$link[1]] = "/index.php/admin/module/".$module."/".$handler;
+                self::$admin_links[$link[0]][$link[1]] = home_url("/admin/module/".$module."/".$handler);
             }
             
                         
@@ -138,7 +138,7 @@
         }
         return $attributes;    
     }
-    function invoke_attributes($module, $file)
+    function invoke_attributes($module, $file, $user)
     {
         global $attr_module;
         global $attr_function;
@@ -146,10 +146,25 @@
         $comments = get_comment_blocks($file);
         $attributes = extract_attributes($comments);
         
+        $group_id = $user->get_user_group_ids(get_active_user_id());
+        $allow_posts = false;
+        $allow_categories = false;
+        foreach ($group_id as $key => $value) {
+            if($user->get_group_by_id($value)->allow_posts == '1')
+                $allow_posts = true;
+            if($user->get_group_by_id($value)->allow_categories == '1')
+                $allow_categories = true;
+        }
+
         foreach($attributes as $attribute)
         {
-            $attr_function = $attribute['function'];
-            eval($attribute['attribute']);
+            if( ($attribute['function'] == 'add_post' && $allow_posts) || ($attribute['function'] == 'add_category' && $allow_categories) ){
+                $attr_function = $attribute['function'];
+                eval($attribute['attribute']);
+            } else if( $attribute['function'] != 'add_post' && $attribute['function'] != 'add_category' ){
+                $attr_function = $attribute['function'];
+                eval($attribute['attribute']);
+            }
         }        
     };
     function populate_admin_links()
@@ -165,8 +180,8 @@
             $cache->insert("f_populate_admin_links-modules", $results);
         }
 
-        
-        
+        $user = new Users();
+
         foreach( $results as $module)
         {
             if($module == "." || $module == "..")
@@ -174,18 +189,18 @@
             
             if(strpos($module,'_child') !== false)
             {
-                $file_path = "modules/".$module."/controllers/admin_child.php";
+                $file_path = "modules/".$module."/controllers/Admin_child.php";
                 $module = str_replace("_child", "", $module);
             }else
             {
-                $file_path = "modules/".$module."/controllers/admin.php";
+                $file_path = "modules/".$module."/controllers/Admin.php";
             }
               
             if(file_exists($file_path))
             {
                 $file = file_get_contents($file_path);
                 
-                invoke_attributes($module, $file);
+                invoke_attributes($module, $file, $user);
             }
 
             
@@ -310,4 +325,52 @@
             
             $this->show->frontend('full',$data); 
         }
-?>
+
+function get_blocks()
+{
+    $results = scandir(APPPATH . "../blocks");
+
+    $blocks = array();
+
+    $blocks['Generic']['type'] = 'block';
+    $blocks['Generic']['folder'] = "generic";
+    $blocks['Generic']['icon'] = "fa-th";
+    foreach($results as $block)
+    {
+        if($block == "." || $block == "..")
+            continue;
+
+          if(!file_exists(APPPATH . "../blocks/$block/{$block}.php"))
+            continue;
+        include_once(APPPATH . "../blocks/$block/{$block}.php");
+        $classname = $block."_block_handler";
+        $handler = new $classname();
+
+        $info = $handler->info();
+        if(!$info)
+          continue;
+        $entry = array();
+        if(isset($info['category_name']) && $info['category_name'] != ""){
+            $blocks[$info['category_name']]['type'] = 'category';
+            $blocks[$info['category_name']]['icon'] = $info['category_icon'];
+            if(!isset($blocks[$info['category_name']]['blocks']))
+                $blocks[$info['category_name']]['blocks'] = array();
+
+            
+            $blocks[$info['category_name']]['blocks'][$info['block_name']]['type'] = 'block';
+            $blocks[$info['category_name']]['blocks'][$info['block_name']]['folder'] = $block;
+            $blocks[$info['category_name']]['blocks'][$info['block_name']]['icon'] = $info['block_icon'];
+
+        }
+            
+        else{
+            $blocks[$info['block_name']]['type'] = 'block';
+            $blocks[$info['block_name']]['folder'] = $block;
+            $blocks[$info['block_name']]['icon'] = $info['block_icon'];
+        }
+            
+
+    }
+    return $blocks;
+
+}

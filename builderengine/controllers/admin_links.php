@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
@@ -15,6 +15,7 @@
 
         public function Admin_links(){
             parent::__construct();
+            $this->user->require_group("Administrators");
             $this->load->model('users');
             $this->load->model('links');
         }
@@ -26,8 +27,10 @@
             if($_POST)
             {
                 $this->links->add($_POST); 
-                $this->user->notify('success', "Link added successfully!");   
+                $this->user->notify('success', "Link added successfully!");
+                redirect('/admin/links/show/', 'location'); 
             }
+            $data['current_page'] = 'navigation';
             $data['groups'] = $this->users->get_groups();
             $this->show->backend("add_link", $data);    
         }
@@ -40,9 +43,12 @@
             if($_POST)
             {
                 $this->links->edit($_POST);
-                $this->user->notify('success', "Link edited successfully!");    
+                $this->user->notify('success', "Link edited successfully!");
+                header( "refresh:1;url=".base_url()."admin/links/show");
             }    
-            $data['groups'] = $this->users->get_groups();
+            $group = new Group();
+            $data['groups'] = $group->get()->all;
+            $data['current_page'] = 'navigation';
             $data['link'] = $this->links->get($id);
             $this->show->backend("edit_link", $data);    
         }
@@ -54,11 +60,12 @@
             redirect('/admin/links/show/', 'location');        
         }
         
-        function show()
+        function show($view=null)
         {         
             $this->show->set_default_breadcrumb(0, "Links", "/admin/links/show");
             $this->show->set_default_breadcrumb(1, "Show", "");
-            $this->show->backend("show_links");        
+            $data['current_page'] = 'navigation';
+            $this->show->backend("show_links", $data);        
         }
     }
 ?>

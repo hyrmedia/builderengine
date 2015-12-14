@@ -1,17 +1,17 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
-	class Layout_system extends Module {
+	class Layout_system extends Module_Controller {
 		public function index()
 		{
 			echo "Layout_system::index()";
@@ -39,6 +39,14 @@
 			$this->db->query('truncate be_block_relations');
 			$this->db->query('truncate be_page_versions');
 			redirect(base_url('/'), 'location');  
+		}
+		public function erase_page_blocks()
+		{
+			$page_path = $_GET['page_path'];
+			$this->db->where('path', $page_path);
+			$this->db->delete('be_page_versions');
+			//redirect(base_url('/'), 'location');  
+
 		}
 	}
 

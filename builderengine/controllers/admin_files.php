@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
@@ -23,8 +23,7 @@ class Admin_files extends BE_Controller {
 	function Admin_files()
 	{
 		parent::__construct();
-		if(!$this->user->is_member_of("Administrators"))
-			die();
+		$this->user->require_group("Administrators");
 		
 	}
 	function show($embedded = false) {
@@ -55,7 +54,7 @@ class Admin_files extends BE_Controller {
 					'uploadFileSize'	=> "5M",
 					'driver'        => 'LocalFileSystem',   // driver for accessing file system (REQUIRED)
 					'path'          => APPPATH.'../files/',         // path to files (REQUIRED)
-					'URL'           => '/files/', // URL to files (REQUIRED)
+					'URL'           => base_url().'files/', // URL to files (REQUIRED)
 					'accessControl' => 'access'  ,           // disable and hide dot starting files (OPTIONAL)
 					'defaults'     => array(        // default permisions
 						'read'   => true,

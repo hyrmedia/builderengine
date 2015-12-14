@@ -1,44 +1,36 @@
-<?
-/***********************************************************
-* BuilderEngine v2.0.12
+<?php /***********************************************************
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 ?>
-    <div id="block-editor" style="position:relative; width: 740px;">
-<script>
-    
-    $("#admin-window").css('display','block');
-    $("#admin-window").draggable();
+<div id="block-editor" style="position:relative; width: 100%;">
 
-
-    
+    <script>
+        $("#admin-window").css('display','block');
+        $("#admin-window").draggable();
     </script>
 
-    <div class="block-editor"  style="width: 740px; position: absolute">
-        <div class="row-fluid">
-            <div class="span12">
-                <div class="widget second">
-                    <div class="widget-title">
-                        <div class="icon"><i class="icon20 i-menu-6"></i></div>
-                        <h4>Block Editor</h4>
-                        
-                        <a href="#" id="popup-close" class="close i-close-2"></a>
-                    </div><!-- End .widget-title -->
+    <div class="block-editor"  style="width: 740px; position: absolute;width: 100%;background-color: #2D353C;height: 400px;">
+        <div style="width: 50%;margin-left: auto;margin-right: auto;max-height: 400px;">
+            <div class="row" style="max-height: 400px;">
+                <div style="max-height: 400px;">
+                    <div style="padding-left: 10px; margin-top:20px">
+                        <!--<h4 id="custom-editor-title" style="float:left">Block Settings</h4>-->
+                        <a href="#" id="popup-close" style="margin-top:10px;font-size: 30px;line-height: 30px;position: absolute;left: 72.6%;color: #FA4F4B;" class="close i-close-2"><i class="fa fa-times btn btn-xs btn-danger"></i></a>
+                    </div>
 
-                    <div class="widget-content" id='admin-window-content'>
-                        
-
-                    </div><!-- End .widget-content -->
-
-                </div><!-- End .widget -->
-            </div><!-- End .span6  -->
+                    <div id='admin-window-content'>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
 </div>

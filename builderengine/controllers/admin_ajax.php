@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
@@ -38,7 +38,7 @@ class Admin_ajax extends BE_Controller {
         $this->load->model('users');
         //$this->load->model('blocks');
         //$this->load->model('versions');
-        $this->user = &$this->users->get_current_user();
+        $this->user = $this->users->get_current_user();
     }
 
     public function get_server_load()
@@ -87,7 +87,6 @@ class Admin_ajax extends BE_Controller {
 
         //print_r( $this->user->get_session_data("copied_block"));
         $this->user->set_session_data("copied_block", $copied_block);
-
         
     }
     public function add_block()
@@ -129,12 +128,11 @@ class Admin_ajax extends BE_Controller {
 
         $this->blocks->save($id, $contents, $style, $classes);
     }
-    public function is_valid_avatar($username)
+    public function get_user_avatar($username)
     {
-        if(file_exists("files/avatars/".$username.".jpg"))
-            echo "true";
-        else
-            echo "false";
+        $user = new User();
+        $user->get_by_username();
+        echo $user->get_avatar();
     }
     public function verify_login()
     {
@@ -148,6 +146,46 @@ class Admin_ajax extends BE_Controller {
             echo "success";
         }else
             echo "fail";
+    }
+    public function registration()
+    {
+        if($this->input->post()){
+            $this->load->library('form_validation');
+            $this->form_validation->set_rules('username', 'Username', 'required|is_unique[users.username]');
+            $this->form_validation->set_rules('email', 'Email', 'required|valid_email|is_unique[users.email]');
+            $this->form_validation->set_rules('first_name', 'First Name', 'required');
+            $this->form_validation->set_rules('last_name', 'Second Name', 'required');
+            $this->form_validation->set_rules('password', 'Password', 'required|min_length[6]|alpha_numeric|matches[confirm_password]');
+            $this->form_validation->set_rules('confirm_password', 'Password', 'required|min_length[6]|alpha_numeric');
+
+            if($this->form_validation->run()){
+                $this->show->set_default_breadcrumb(0, "Settings", "");
+                $this->show->set_default_breadcrumb(1, "General", "");
+                $this->load->model('builderengine');
+
+                if($this->builderengine->get_option('sign_up_verification') == 'admin')
+                {
+                    $this->load->model('options');
+                    $_POST['groups'] = $this->options->get_option_by_name('default_registration_group')->value;
+                    $new_user = $this->users->register_user($this->input->post());
+                    echo 'register with admin';
+                }elseif ($this->builderengine->get_option('sign_up_verification') == 'email') {
+                    $this->load->model('options');
+                    $_POST['groups'] = $this->options->get_option_by_name('default_registration_group')->value;
+                    $new_user = $this->users->register_user($this->input->post());
+                    $this->user->notify('success', "User created successfully!");
+                    $this->users->send_registration_email($this->input->post('email'),$new_user);
+                    echo 'register with email';
+                }
+            }else{
+                $error['username'] = form_error('username');
+                $error['email'] = form_error('email');
+                $error['first_name'] = form_error('first_name');
+                $error['last_name'] = form_error('last_name');
+                $error['password'] = form_error('password');
+                echo json_encode($error);
+            }
+        }
     }
     public function load_icon_selector(){
         $cssClassName = urldecode($_POST['base_class_name']);
@@ -183,8 +221,6 @@ class Admin_ajax extends BE_Controller {
     public function load_bg_selector(){
 
         $data['target'] = $_POST['target'];
-
-
         $this->load->view("bg_selector", $data);
 
     }
@@ -197,7 +233,7 @@ class Admin_ajax extends BE_Controller {
                         <div class="widget second">
                             <div class="widget-title">
                                 <div class="icon"><i class="icon20 i-menu-6"></i></div>
-                                <h4>Block Editor</h4>
+                                <h4>Block Editorjj</h4>
                                 <a href="#" class="minimize"></a>
                             </div><!-- End .widget-title -->
                             <div class="widget-content">
@@ -247,16 +283,12 @@ class Admin_ajax extends BE_Controller {
                 $approver = $this->users->get_by_id($version->approver);
                 $version->approver = ($approver->name != "") ? $approver->name : $approver->username;
             }
-
-
         }
         $data['mode'] = $mode;
         $data['page_versions'] = $page_versions;
 
-
         $this->load->view("versions_manager", $data);
     }
-
     
 
     public function publish_version()
@@ -277,11 +309,12 @@ class Admin_ajax extends BE_Controller {
             $this->version_activate($version_id);
         }
 
-
         //$this->db->query("UNLOCK TABLES");
     }
     function toggle_version_approved($id)
     {
+        $this->load->model('versions');
+        $this->versions = new Versions();
         $this->user->require_group("Frontend Manager");
         if($this->versions->is_version_approved($id))
             echo "Approved";
@@ -292,6 +325,8 @@ class Admin_ajax extends BE_Controller {
 
     function version_activate($id)
     {
+        $this->load->model('versions');
+        $this->versions = new Versions();
         $this->user->require_group("Frontend Manager");
         $this->versions->activate_version($id);
     }
@@ -307,15 +342,7 @@ class Admin_ajax extends BE_Controller {
         $visits = $this->BuilderEngine->get_site_visits($type, $days, true);
         echo $visits;
     }
-    function dashboard_get_visitors_graph($days)
-    {
-        $all_visits = $this->BuilderEngine->get_site_visits("all", $days, false);
-        $unique_visits = $this->BuilderEngine->get_site_visits("unique", $days, false);
-
-        $visits['all'] = json_encode( $all_visits);
-        $visits['unique'] = json_encode( $unique_visits);
-        echo json_encode($visits);
-    }
+   
     public function validate_unique_field($table, $field, $original_value = ""){
         $table = mysql_real_escape_string(urldecode($table));
         $field = mysql_real_escape_string(urldecode($field));
@@ -340,6 +367,47 @@ class Admin_ajax extends BE_Controller {
             echo "false";
         else
             echo "true";
+    }
+
+    function dashboard_get_visitors_graph($days)
+    {
+        $all_visits = $this->BuilderEngine->get_site_visits("all", $days, false);
+        $unique_visits = $this->BuilderEngine->get_site_visits("unique", $days, false);
+
+        $visits['all'] = json_encode( $all_visits);
+        $visits['unique'] = json_encode( $unique_visits);
+        echo json_encode($visits);
+    }
+
+    public function get_latest_news(){
+        $curl = curl_init();
+
+        curl_setopt_array($curl, Array(
+            CURLOPT_URL            => 'http://builderengine.com/blog/feed/1',
+            CURLOPT_USERAGENT      => 'spider',
+            CURLOPT_TIMEOUT        => 120,
+            CURLOPT_CONNECTTIMEOUT => 30,
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_ENCODING       => 'UTF-8'
+        ));
+
+        $data = curl_exec($curl);
+
+        curl_close($curl);
+
+        $xml = simplexml_load_string($data, 'SimpleXMLElement', LIBXML_NOCDATA);
+        $response = array();
+
+        foreach ($xml->channel->item as $item) {
+            $response[] = array(
+                'title' => $item->title,
+                'description' => $item->description,
+                'link' => $item->link,
+                'image' => $item->enclosure->attributes()->url
+            );
+        }
+
+        echo json_encode($response);
     }
 }
 

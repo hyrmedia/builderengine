@@ -1,83 +1,143 @@
 <?php
-/***********************************************************
-* BuilderEngine v2.0.12
-* ---------------------------------
-* BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
-*
-* http://www.builderengine.com
-* Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
-*
-***********************************************************/
-
-    class Admin extends BE_Controller{
-        
-        function Admin()
+    class Admin extends BE_Controller
+    {
+        // [MenuItem ("Blog/Posts/Add")]
+        public function add_post()
         {
-            parent::__construct();
-            $this->show->set_default_breadcrumb(0, "Blog", "/admin/module/blog/show_posts");
+            $this->modify_object('post');
         }
-        // [MenuItem ("Blog/Add Post")]    
-        function add_post(){
-            $this->load->model("posts");
-            if($_POST){
-                $post = $this->posts->add($_POST, $this->user->get_id());
-                redirect('/blog/'.$post."?edit=.blog-post", 'location');
-            }
-                
-            $this->user->editor_mode(true);
-            $this->load->view("add_post");
+        // [MenuItem ("Blog/Posts/Show")]
+        public function show_posts()
+        {
+            $this->show_objects('post');
         }
-        
-
-        
-
-        function edit_post($id){
-            $this->load->model("posts");
-            if($_POST){
-                $this->posts->edit($_POST['id'], $_POST);
-                if(isset($_POST['invoker']) && $_POST['invoker'] == "frontend")
-                    redirect("/blog/".$id, 'location');
-            }
-                
-            
-            $data['post'] = $this->posts->get($id);
-               
-            
-            $this->load->view("edit_post", $data);
+        // [MenuItem ("Blog/Categories/Add")]
+        public function add_category()
+        {
+            $this->modify_object('category');
+        }
+        // [MenuItem ("Blog/Categories/Show")]
+        public function show_categories()
+        {
+            $this->show_objects('category');
+        }
+        // [MenuItem ("Blog/Reports/Comment Reports")]
+        public function show_comment_reports()
+        {
+            $this->show_objects('comment_report');
         }
         
-        function delete_post($id)
-        {              
-            $this->load->model("posts");
-            $this->load->helper('url');
+        public function modify_object($object_type, $object_id = -1)
+        {
+            $object = $this->get_object($object_type, $object_id);
             
-            $this->posts->delete($id);
-            
-            redirect('/admin/module/blog/show_posts', 'location');
-        }
-        // [MenuItem ("Blog/Show Posts")]
-        function show_posts(){
-            $this->load->model("posts");
-            $this->load->model("users");
-
-            /*if($_POST)
-                $data['posts'] = $this->posts->search($_POST['search']);
-            else*/
-            $data['posts'] = $this->posts->get();
-            
-            foreach($data['posts'] as $key => $post)
+            if($_POST)
             {
-                $user = $this->users->get_by_id($post->author);
-                $post_array = (array)$post;
-                unset($post_array['author']);
-                $obj = (object) array_merge( (array)$post_array, array( 'author' => $user ) );
-                $data['posts'][$key] = $obj;  
+                $object->create($_POST);
+                redirect(base_url('/index.php/admin/module/blog/show_objects/'.$object_type), 'location');
+            }
+            
+            $data['view'] = $this->get_view($object_type,  $object_id);
+            $data['title'] = ucfirst($object_type);
+            $this->load->view('backend/modify_object', $data);
+        }
+
+        public function delete_object($object_type, $object_id)
+        {
+            $object = $this->get_object($object_type, $object_id);
+            $object->delete();
+            redirect(base_url('/index.php/admin/module/blog/show_objects/'.$object_type), 'location');
+        }
+
+        public function get_object($object_type, $object_id = -1, $get = false)
+        {
+            $this->load->model($object_type);
+            $object = new $object_type($object_id);
+
+            if($get == true)
+                return $object->get();
+            else
+                return $object;
+        }
+
+        public function get_view($object_type, $object_id = -1)
+        {
+            $view_name = 'add_'.$object_type;
+
+            if($object_id == -1)
+                $data['page'] = 'Add';
+            else
+                $data['page'] = 'Edit';
+
+            $data['object'] = $this->get_object($object_type, $object_id);
+            $view = $this->load->view('backend/'.$view_name, $data, true);
+            return $view;
+        }
+
+        public function show_objects($object_type)
+        {
+
+            $user = new users();
+            $group_id = $user->get_user_group_ids(get_active_user_id());
+            $condition = false;
+            if($object_type == 'post')
+            {
+                foreach ($group_id as $key => $value) {
+                    if($user->get_group_by_id($value)->allow_posts == '1')
+                        $condition = true;
+                }
+            } elseif ( $object_type == 'category' ) {
+                foreach ($group_id as $key => $value) {
+                    if($user->get_group_by_id($value)->allow_categories == '1')
+                        $condition = true;
+                }
             }
 
-            
-            $this->load->view("show_posts", $data);
+            $data['objects'] = $this->get_object($object_type, '', true);
+            $data['condition'] = $condition;
+            $this->load->view('backend/show_'.$object_type.'_objects', $data);
         }
-    }  
+        // [MenuItem ("Blog/Settings/General Settings")]
+        public function settings()
+        {
+            if($_POST)
+            {
+                $this->BuilderEngine->set_option('be_blog_allow_comments', $this->input->post('allow_comments', true));
+                $this->BuilderEngine->set_option('be_blog_comments_private', $this->input->post('comments_private', true));
+                $this->BuilderEngine->set_option('be_blog_captcha', $this->input->post('captcha', true));
+                $this->BuilderEngine->set_option('be_blog_show_tags', $this->input->post('show_tags', true));
+                $this->BuilderEngine->set_option('be_blog_num_tags_displayed', $this->input->post('num_tags_displayed', true));
+                $this->BuilderEngine->set_option('be_blog_num_recent_posts_displayed', $this->input->post('num_recent_posts_displayed', true));
+                $this->BuilderEngine->set_option('be_blog_num_posts_displayed', $this->input->post('num_posts_displayed', true));
+                $this->BuilderEngine->set_option('be_blog_access_groups', $this->input->post('access_groups', true));
+                //$this->BuilderEngine->set_option('be_blog_default_module', $_POST['default_module']);
+            }
+            $this->load->view('backend/blog_settings'); 
+        }
+
+        public function show_report($id){
+            $comment_report = new Comment_report();
+            $data = array(
+                'report' => $comment_report->where('id',$id)->get()->all[0]
+                );
+            $this->load->view('backend/show_report',$data);
+        }
+
+        public function delete_comment($id)
+        {
+            $comments = new Comment($id);
+            // foreach ($comments->get() as $comment)
+            // {
+            //     $comment->delete();
+            // }
+            $comments->delete();
+            redirect(base_url('/admin/module/blog/show_objects/comment_report'), 'location');
+        }
+        public function delete_report($id)
+        {
+            $comment_report = new Comment_report($id);
+            $comment_report->delete();
+            redirect(base_url('/admin/module/blog/show_objects/comment_report'), 'location');
+        }
+    }
 ?>

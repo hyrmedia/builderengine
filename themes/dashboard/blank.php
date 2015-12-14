@@ -1,28 +1,18 @@
-<?php
-/***********************************************************
-* BuilderEngine v2.0.12
-* ---------------------------------
-* BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
-*
-* http://www.builderengine.com
-* Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
-*
-***********************************************************/
+<?php echo get_header() ?>
 
- echo get_header();?>
-               
-                <div class="container-fluid">
-                    <div id="heading" class="page-header">
-                        <h1><i class="icon20 i-dashboard"></i> Dashboard</h1>
-                    </div>
+<?php echo get_sidebar() ?>
 
-                    <?php echo $contents?>
+<!-- begin #content -->
+<div id="content" class="content" style="min-height:800px">
+<?php echo $contents ?>
+</div>
+<!-- end #content -->
 
-                </div> <!-- End .container-fluid  -->
-            </div> <!-- End .wrapper  -->
-        </section>
-    </div><!-- End .main  -->
-  </body>
-</html>
+
+<!-- begin scroll to top btn -->
+<a href="javascript:;" class="btn btn-icon btn-circle btn-success btn-scroll-to-top fade" data-click="scroll-top"><i class="fa fa-angle-up"></i></a>
+<!-- end scroll to top btn -->
+</div>
+<!-- end page container -->
+
+<?php echo get_footer()?>

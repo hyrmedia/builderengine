@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
@@ -29,7 +29,7 @@
         public function Versions()
         {
             parent::__construct();
-            if(empty(self::$page_block)){
+            if(empty(self::$page_block) && isset($this->db)){
                 
                 $this->load_page_blocks();
 
@@ -90,6 +90,7 @@
         public function get_current_page_version()
         {
             global $active_controller;
+            if(isset($active_controller->user) && !empty($active_controller->user)){
 
             $user = $active_controller->user;
 
@@ -98,12 +99,13 @@
                 return $this->get_pending_page_version_id($active_controller->get_page_path()); 
             else
                 return $this->get_active_page_version_id($active_controller->get_page_path());  
+            }
 
         }
         public function get_current_layout_version()
         {
             global $active_controller;
-
+            if(isset($active_controller->user) && !empty($active_controller->user)){
             $user = $active_controller->user;
 
             if(($user->is_member_of("Administrators") || $user->is_member_of("Frontend Editor") || $user->is_member_of("Frontend Manager")) && $this->get_pending_page_version_id("layout") !== false)
@@ -112,7 +114,7 @@
             }else{
                 return $this->get_active_page_version_id("layout");
                 }   
-            
+            }
 
         }
 
@@ -132,7 +134,6 @@
         public function get_active_page_version_id($page_path)
         {
             if(array_key_exists($page_path, self::$active_version)){
-                PC::prucpruc('Got cached page version '.self::$active_version[$page_path].' path '.$page_path);
                 return self::$active_version[$page_path];
             }
 
@@ -142,12 +143,10 @@
             $result = $query->result();
             
             if($result){
-                PC::prucpruc('Found active version '.$result[0]->id." path ".$page_path);
                 self::$active_version[$page_path] = $result[0]->id;
                 return $result[0]->id;    
             }else{
                 $new_version = $this->create_initial_page_version($page_path);
-                PC::prucpruc('New active version '.$new_version.' Page '.$page_path);
                 self::$active_version[$page_path] = $new_version;
                 return $new_version;   
             }    
@@ -211,15 +210,12 @@
         private function load_block_directly($block)
         {
 
-            PC::debug("Loading block directly.");
             $page_path = $this->blocks->get_page_path_of($block->name);
-            PC::debug("versions::load_block_directly() Page Path: $page_path");
             if($page_path === false){
                 PC::error("Coudn't find page path of block name '{$block->name}'");
                 return;
             }
             $pending_version = $this->get_pending_or_active_page_version_id($page_path);
-            PC::debug("Loading block from version $pending_version","versions::load_block_directly");
             $this->db->where("version", $pending_version);
             $this->db->where("`name` = '{$block->name}'");
 
@@ -260,6 +256,7 @@
 
             $page_version = $this->get_current_page_version();
             $layout_version = $this->get_current_layout_version();
+            if(!is_null($this->db)){
 
             $this->db->where("(`version` = '$page_version'");
             $this->db->or_where("`version` = '$layout_version')");
@@ -276,6 +273,7 @@
                     self::$block_relations[$entry->parent] = array();
 
                 array_push(self::$block_relations[$entry->parent], $entry->child);
+            }
             }
         }
 
@@ -295,33 +293,35 @@
             $page_version = $this->get_current_page_version();
             $layout_version = $this->get_current_layout_version();
 
-            PC::load_page_blocks("Loading blocks on page version: $page_version layout version: $layout_version");
-            $this->db->where("(`version` = '$page_version'");
-            $this->db->or_where("`version` = '$layout_version')");
+            PC::LayoutSystem("Loading blocks on page version: $page_version");
+            PC::LayoutSystem("Loading blocks on layout version: $layout_version");
+            if(!is_null($this->db)){
+                $this->db->where("(`version` = '$page_version'");
+                $this->db->or_where("`version` = '$layout_version')");
 
-            $this->db->order_by("ID ASC");
-            $query = $this->db->get("blocks");
-            $result = $query->result_array();
-            foreach($result as $key => $row)
-            {
-                //print_r($result);
-                
-                if($row['version'] == 0)
-                    if($row->global == "true"){
-                        $this->bind_block_to_page_version($row['id'], $layout_version);
-                        $result[$key]['version'] = $layout_version;
-                    }else{
-                        $this->bind_block_to_page_version($row['id'], $page_version);
-                        $result[$key]['version'] = $page_version;
-                    }
+                $this->db->order_by("ID ASC");
+                $query = $this->db->get("blocks");
+                $result = $query->result_array();
+                foreach($result as $key => $row)
+                {
+                    //print_r($result);
+                    
+                    if($row['version'] == 0)
+                        if($row->global == "true"){
+                            $this->bind_block_to_page_version($row['id'], $layout_version);
+                            $result[$key]['version'] = $layout_version;
+                        }else{
+                            $this->bind_block_to_page_version($row['id'], $page_version);
+                            $result[$key]['version'] = $page_version;
+                        }
 
-                if(isset(self::$block_relations[$row['name']])){
-                    $result[$key]['children'] = self::$block_relations[$row['name']];
-                }else
-                    $result[$key]['children'] = array();
-                $result[$key] = (object)$result[$key];
-                self::$page_block[$row['name']] = $result[$key];
-
+                    if(isset(self::$block_relations[$row['name']])){
+                        $result[$key]['children'] = self::$block_relations[$row['name']];
+                    }else
+                        $result[$key]['children'] = array();
+                    $result[$key] = (object)$result[$key];
+                    self::$page_block[$row['name']] = $result[$key];
+            }        
             }
 
         }
@@ -332,7 +332,7 @@
                 'author'        =>  0,
                 'approver'      =>  0,
                 'name'          =>  'Initial Version',
-                'status'        =>  'submitted',
+                'status'        =>  'pending',
                 'active'        =>  'yes',
                 'time_created'  => time()
             );

@@ -59,7 +59,7 @@
 			// Enable this section to print errors out for each row.
 			if( ! empty($error)): ?>
 			<span class="error"><?php echo $error; ?></span>
-			<? endif; */
+			<?php endif; */
 			?>
 
 		</td>

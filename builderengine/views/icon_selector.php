@@ -95,11 +95,11 @@ $(document).ready( function () {
                             <div class="control-group">
                                 <div class="controls-row">
                                     <div class="span12">
-                                        <?
+                                        <?php
                                         $i = 1;
                                         foreach($classes as $class):?>
                                             <i id="icon-sample-<?=$i?>" class=" <?=$class?> biggy-icon" classname="<?=$class?>"></i>
-                                        <?$i++;
+                                        <?php $i++;
                                         endforeach;?>
                                     </div><!-- End .span12  -->
                                 </div><!-- End .controls-row -->

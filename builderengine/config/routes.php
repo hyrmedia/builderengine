@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
@@ -54,32 +54,42 @@
 //Everything routed through the module_manager; He initializes the initial show object which later on is used everywhere.
 //Besides that in the module_manager is the only place where the functions frontend and backend are called
 $route['404_override'] = '';
-$route['default_controller'] = "module_manager/process/page";
+$route['default_controller'] = "module_manager";
 $route['editor'] = "module_manager/process_editor/page/index";
-$route['editor/(:any)'] = "module_manager/process_editor/$1";
-$route['admin/module/(:any)/(:any)/(:any)/(:any)/(:any)/(:any)/(:any)/(:any)'] = "module_manager/process_admin/$1/admin/$2/$3/$4/$5/$6/$7/$8";
-$route['admin/module/(:any)/(:any)/(:any)/(:any)/(:any)/(:any)/(:any)'] = "module_manager/process_admin/$1/admin/$2/$3/$4/$5/$6/$7";
-$route['admin/module/(:any)/(:any)/(:any)/(:any)/(:any)/(:any)'] = "module_manager/process_admin/$1/admin/$2/$3/$4/$5/$6";
-$route['admin/module/(:any)/(:any)/(:any)/(:any)/(:any)'] = "module_manager/process_admin/$1/admin/$2/$3/$4/$5";
-$route['admin/module/(:any)/(:any)/(:any)/(:any)'] = "module_manager/process_admin/$1/admin/$2/$3/$4";
-$route['admin/module/(:any)/(:any)/(:any)'] = "module_manager/process_admin/$1/admin/$2/$3";
-$route['admin/module/(:any)/(:any)'] = "module_manager/process_admin/$1/admin/$2";
+$route['editor/(.+)'] = "module_manager/process_editor/$1";
+$route['admin/module/(.+)/(.+)/(.+)/(.+)/(.+)/(.+)/(.+)/(.+)'] = "module_manager/process_admin/$1/admin/$2/$3/$4/$5/$6/$7/$8";
+$route['admin/module/(.+)/(.+)/(.+)/(.+)/(.+)/(.+)/(.+)'] = "module_manager/process_admin/$1/admin/$2/$3/$4/$5/$6/$7";
+$route['admin/module/(.+)/(.+)/(.+)/(.+)/(.+)/(.+)'] = "module_manager/process_admin/$1/admin/$2/$3/$4/$5/$6";
+$route['admin/module/(.+)/(.+)/(.+)/(.+)/(.+)'] = "module_manager/process_admin/$1/admin/$2/$3/$4/$5";
+$route['admin/module/(.+)/(.+)/(.+)/(.+)'] = "module_manager/process_admin/$1/admin/$2/$3/$4";
+$route['admin/module/(.+)/(.+)/(.+)'] = "module_manager/process_admin/$1/admin/$2/$3";
+$route['admin/module/(.+)/(.+)'] = "module_manager/process_admin/$1/admin/$2";
 
-$route['admin/module/(:any)'] = "module_manager/process_admin/$1";
-
-$route['admin/(:any)/(:any)'] = "admin_$1/$2";
-
-//$route['module/(:any)/(:any)'] = "module_manager/process/$1/$2";
-$route['module/(:any)'] = "module_manager/process/$1";
+$route['admin/module/(.+)'] = "module_manager/process_admin/$1";
 
 
+$route['admin/(.+)/(.+)'] = "admin_$1/$2";
 
-$route['(:any)/ajax/(:any)'] = "module_manager/process_ajax/$1/ajax/$2";
+$route['admin/(.+)/(.+)/(.+)'] = "admin_$1/$2/$3";
+$route['user/(.+)/(.+)/(.+)'] = "user_$1/$2/$3";
+$route['admin/(.+)/(.+)'] = "admin_$1/$2";
+$route['user/(.+)/(.+)'] = "user_$1/$2";
 
-$route['(:any).html'] = "module_manager/process_seo/$1";
+//$route['module/(.+)/(.+)'] = "module_manager/process/$1/$2";
+$route['api/(.+)'] = "module_manager/process_api/$1";
+$route['module/(.+)'] = "module_manager/process/$1";
+
+
+
+$route['(.+)/ajax/(.+)'] = "module_manager/process_ajax/$1/ajax/$2";
+
+$route['(.+).html'] = "module_manager/process_seo/$1";
 
 $route['admin'] = "/admin_main/dashboard";
-$route['(:any)'] = "module_manager/process/$1";
+// $route['(.+)'] = "module_manager/process/$1";
+$route['login'] = "/user_main/dashboard";
+$route['login/(.+)'] = "/user_main/dashboard/$1";
+$route['(.+)'] = "module_manager/process/$1";
 
 
 /* End of file routes.php */

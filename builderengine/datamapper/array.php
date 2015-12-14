@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
@@ -224,6 +224,67 @@ class DMZ_Array {
 			// return new objects
 			return $new_related_objects;
 		}
+	}
+
+	/**
+	 * Convert an associative multi_level array back into a DataMapper model.
+	 *
+	 * If $fields is provided, missing fields are assumed to be empty checkboxes.
+	 *
+	 * @param	DataMapper $object The DataMapper Object to save to.
+	 * @param	array $data A an associative array of fields to convert.
+	 * @param	array $fields Array of 'safe' fields.  If empty, only includes the database columns.
+	 * @return	array|bool A list of newly related objects, or the result of the save if $save is TRUE
+	 */
+	function all_from_array($object, $data, $fields = '')
+	{
+		// get the objects class name, we need it to construct copies
+		$class = get_class($object);
+
+		$first = true;
+
+		// loop over the data array
+		foreach($data as $row)
+		{
+			// create an object for this row
+			if ($first)
+			{
+				$object->from_array($row, $fields);
+			}
+			else
+			{
+				$new = new $class;
+				$new->from_array($row, $fields);
+			}
+
+			// and store it in the object
+			if ($object->all_array_uses_ids && isset($row['id']))
+			{
+				if ($first)
+				{
+					$object->all[$row['id']] =& $object;
+				}
+				else
+				{
+					$object->all[$row['id']] = $new;
+				}
+			}
+			else
+			{
+				if ($first)
+				{
+					$object->all[] =& $object;
+				}
+				else
+				{
+					$object->all[] = $new;
+				}
+			}
+
+			$first = FALSE;
+		}
+
+		return $object;
 	}
 
 }

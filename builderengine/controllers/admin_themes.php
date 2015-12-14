@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
 
@@ -15,6 +15,7 @@
 
         public function Admin_themes(){
             parent::__construct();
+            $this->user->require_group("Administrators");
             $this->load->model('users');
             $this->load->model('modules_db');
         }
@@ -48,7 +49,13 @@
             if($_POST)
             {
                 $this->BuilderEngine->set_option("active_frontend_theme", $_POST['theme']);
-            }   
+                $this->BuilderEngine->set_option("theme_color_pattern", '');
+            }
+            if($_GET)
+            {
+                $this->BuilderEngine->set_option("theme_color_pattern", $_GET['color_pattern']);
+            }
+           
             $this->show->set_default_breadcrumb(0, "Settings", "");
             $this->show->set_default_breadcrumb(1, "Themes", "");
             $this->show->set_default_breadcrumb(2, "Show", "");
@@ -76,7 +83,7 @@
             $folders = scandir(APPPATH."../themes");
             foreach ($folders as $folder)
             {
-                if($folder == "." || $folder == ".." || $folder == "dashboard" || $folder[0] == "." || !is_dir(APPPATH."../themes/".$folder))
+                if($folder == "." || $folder == ".." || $folder == "user_dashboard" || $folder == "dashboard" || $folder[0] == "." || !is_dir(APPPATH."../themes/".$folder))
                     continue;
 
                 $theme = array();

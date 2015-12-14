@@ -1,13 +1,13 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
     
@@ -57,4 +57,25 @@
     {
         return phpversion();
     }
-?>
+
+    function get_active_user_id()
+    {
+        $CI = & get_instance();
+        $CI->load->library('session');
+        return $CI->session->userdata('user_id');
+    }
+
+    /*
+    *sometimes FCKeditor wants to add \r\n, so replace it with a space
+    *sometimes FCKeditor wants to add <p>&nbsp;</p>, so replace it with nothing
+    */
+    function ChEditorfix($value){
+        $order   = array("\\r\\n", "\\n", "\\r", "<p>&nbsp;</p>");
+        $replace = array(" ", " ", " ", "");
+        $value = str_replace($order, $replace, $value);
+        if(strpos($value, 'src')){
+            return preg_replace('/(\\\")/', '"',$value );
+        }else{
+            return $value;
+        }
+    }

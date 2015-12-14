@@ -6,7 +6,7 @@ function edit_block(id)
         $( "body" ).append( "<div id='admin-window' style='position:absolute;top:0px'> </div>" );
  
         
-        $.get('http://devcms.radianmx.com/admin/ajax/load_block_editor', function(data) {
+        $.get(site_editor + '/admin/ajax/load_block_editor', function(data) {
             $("#admin-window").html(data);
             $('#text-editor').html($("#"+id).html()); 
             $('#text-editor').wysihtml5();  
@@ -16,7 +16,7 @@ function edit_block(id)
                 $("#"+id).html(html);
                  
 
-                $.post("/index.php/admin/ajax/save_block",
+                $.post(site_root + "/admin/ajax/save_block",
                 {
                     contents:encodeURIComponent(html),
                     id:$("#"+id).attr( 'blockid')

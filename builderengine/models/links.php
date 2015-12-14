@@ -1,16 +1,16 @@
 <?php
 /***********************************************************
-* BuilderEngine v2.0.12
+* BuilderEngine v3.1.0
 * ---------------------------------
 * BuilderEngine CMS Platform - Radian Enterprise Systems Limited
-* Copyright Radian Enterprise Systems Limited 2012-2014. All Rights Reserved.
+* Copyright Radian Enterprise Systems Limited 2012-2015. All Rights Reserved.
 *
 * http://www.builderengine.com
 * Email: info@builderengine.com
-* Time: 2014-23-04 | File version: 2.0.12
+* Time: 2015-08-31 | File version: 3.1.0
 *
 ***********************************************************/
-    class links extends CI_Model
+    class Links extends CI_Model
     {
         private static $cached_links = null;
         private static $cached_links_index = null;
@@ -20,8 +20,21 @@
             if(self::$cached_links != null)
                 if($id == 0)
                     return self::$cached_links;
-                else
+
+            if($id != 0)
+            {
+                if(isset(self::$cached_links_index[$id]))
+                {
                     return self::$cached_links_index[$id]; 
+                }else
+                {
+                    $this->db->where('id', $id);
+                    $result = $this->db->get('be_links')->result();
+                    $result[0]->tags = trim(str_replace("|", ",", $result[0]->tags), ","); 
+                    self::$cached_links_index[$id] = $result[0];
+                    return $result[0];
+                }
+            }
 
             global $user;
 
@@ -30,8 +43,8 @@
 
 
             $this->db->from("be_link_permissions");
-            
-            $this->db->where('be_link_permissions.group_id in ('.implode(',', $user->groups).')');
+            $this->db->where('be_link_permissions.group_id in ('.implode(',', $user->get_group_ids()).')');
+            // $this->db->where('be_link_permissions.group_id in (1,2,3,4)');
 
             $this->db->join('be_links', 'be_links.id = be_link_permissions.link_id', 'inner');
             
@@ -211,14 +224,27 @@
                 "target"  => $post['target'],
                 "title"  => $post['title'],
                 "tags"  => "|".str_replace(",", "|",$post['tags'])."|",
-                "parent"  => $post['parent'],
+                // "parent"  => $post['parent'],
                 "order"  => $post['order'],
 
                 );
+            if($post['parent'])
+                $data['parent'] = $post['parent'];
+            else
+                $data['parent'] = 0;
             $this->db->where('id', $post['id']);    
             $this->db->update('links', $data);
             
             $this->set_link_permissions($post['id'], explode(",", $post['groups']));    
+        }
+        function edit_page($name,$post)
+        {
+            $data = array(
+                "name"  => $post['name'],
+                "target"  => "/page-".$post['target'].".html",
+                );
+            $this->db->where('name', $name);
+            $this->db->update('links', $data);
         }
         
         function add($post)
@@ -232,7 +258,7 @@
                 );
             
             $this->db->insert('links', $data);
-            
+            //echo $post['groups'];
             $this->set_link_permissions($this->db->insert_id(), explode(",", $post['groups']));    
         }
         
